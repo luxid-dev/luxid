@@ -1,0 +1,16 @@
+[package]
+name = "luxid-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "In-application command line for the Luxid web framework"
+
+[dependencies]
+luxid-core.workspace = true
+luxid-orm.workspace = true
+clap.workspace = true
+serde_json.workspace = true
+sea-orm-migration.workspace = true
+tokio.workspace = true

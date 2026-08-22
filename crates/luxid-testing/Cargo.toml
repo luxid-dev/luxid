@@ -1,0 +1,18 @@
+[package]
+name = "luxid-testing"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Test harness for the Luxid web framework"
+
+[dependencies]
+luxid-core.workspace = true
+salvo.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }

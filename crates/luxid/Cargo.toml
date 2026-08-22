@@ -1,0 +1,34 @@
+[package]
+name = "luxid"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "A Laravel/AdonisJS-inspired convention-over-configuration web framework for Rust"
+
+[features]
+default = ["orm", "cli"]
+orm = ["dep:luxid-orm"]
+cli = ["orm", "dep:luxid-cli"]
+
+[dependencies]
+luxid-core.workspace = true
+luxid-macros.workspace = true
+luxid-orm = { workspace = true, optional = true }
+luxid-cli = { workspace = true, optional = true }
+serde.workspace = true
+serde_json.workspace = true
+schemars.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true
+salvo.workspace = true
+sea-orm.workspace = true
+sea-orm-migration.workspace = true
+luxid-testing.workspace = true
+criterion.workspace = true
+
+[[bench]]
+name = "overhead"
+harness = false

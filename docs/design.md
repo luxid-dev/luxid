@@ -1,7 +1,7 @@
 # Luxid — Design
 
-**Date:** 2026-08-22
-**Status:** Approved, pre-implementation
+**Status:** Living document — updated as the implementation proves or
+disproves what it says. Started 2026-08-22.
 **Substrate:** salvo · SeaORM 2.0 · Rust edition 2024 (toolchain 1.97.1)
 
 ---
@@ -362,21 +362,54 @@ pub struct Model {
 // src/models/user.rs — yours
 pub use crate::entities::users::Model as User;
 
-#[luxid::model]
+#[luxid::model(
+    has_many(posts = Post, fk = "user_id"),
+    belongs_to(team = Team),
+)]
 impl User {
-    #[has_many(Post, fk = "user_id")]  fn posts();
-    #[belongs_to(Team)]                fn team();
-
     #[scope]
-    fn active(q: Query<Self>) -> Query<Self> { q.where_null(User::deleted_at) }
+    fn active(query: Query<users::Entity>) -> Query<users::Entity> {
+        query.where_null(User::deleted_at)
+    }
+}
+```
 
-    #[before_save]
-    async fn hash_password(&mut self) -> Result<()> {
-        if self.is_dirty(User::password) { self.password = Hash::make(&self.password)?; }
+Relations generate a typed accessor each — `user.posts()`, `user.team()` — so
+two relations pointing at the same model stay unambiguous.
+
+**Relations are declared in the attribute, not as `#[has_many] fn posts();`.**
+A bodiless `fn` is not parseable Rust: syn rejects it before the macro runs, so
+that spelling would greet users with `expected `{`` pointing inside a macro they
+did not write. Scopes keep the `#[scope]` spelling because they have bodies.
+
+Hooks are named on the derive, and their functions live in a plain `impl`:
+
+```rust
+#[derive(.., luxid::Model)]
+#[luxid(before_create = Self::hash_password, after_create = Self::send_welcome)]
+#[sea_orm(table_name = "users")]
+pub struct Model { .. }
+
+impl Model {
+    async fn hash_password(active: &mut users::ActiveModel) -> Result<()> {
+        if let Set(password) = &active.password {
+            active.password = Set(Hash::make(password)?);
+        }
         Ok(())
     }
 }
 ```
+
+**Why not `#[before_save]` inside the model block?** `luxid::insert` and
+`luxid::update` *require* the hooks trait, so hooks always run on the ordinary
+write path — a hook that silently fails to fire is a security bug, not an
+inconvenience. Requiring the trait means every model implements it, which means
+the derive generates it, which means the derive must know the hooks. Declaring
+them elsewhere would leave hookless models uninsertable or produce conflicting
+impls. `insert_without_hooks` is the escape hatch, named for what it costs.
+
+Order: `before_save` → `before_create` → write → `after_create` → `after_save`,
+mirrored for updates. An `Err` from any *before* hook aborts the write.
 
 ### Queries
 
@@ -431,7 +464,18 @@ Attribute-driven, adjacent to the action it describes:
 Pure-context signatures carry no type information, so inference is not available. The attribute
 restates types the body also mentions; `luxid check` lints for drift between the two.
 
-`luxid openapi` emits the spec from a static registry the `#[controller]` macro populates.
+`luxid openapi` emits the spec by walking the **route table**, not a static
+registry: a registry would mean `inventory`/`linkme` linker tricks, which §2
+ruled out for routing. Routes are registered explicitly, so `Action::openapi()`
+hangs the metadata on the action and the document is assembled from the routes
+that actually exist. A route missing from the spec is a route missing from
+`luxid routes`.
+
+The document is OpenAPI **3.1**, which *is* JSON Schema, so `schemars` output
+drops in without translation. Error statuses reference an RFC 7807 `Problem`
+component automatically, and path parameters are derived from the route pattern
+so they cannot disagree with it. Undocumented actions appear marked
+`Undocumented` rather than being omitted.
 
 ---
 
@@ -446,6 +490,7 @@ r.resource("/admin", AdminController).middleware(Auth::session());
 ctx.auth.user().await?
 ctx.auth.try_user().await?
 ctx.authorize(PostPolicy::update, &post)?   // → Error::Forbidden → 403
+ctx.can(PostPolicy::update, &post)          // bool, no consequence
 ```
 
 `Hash` wraps argon2; tokens use `jsonwebtoken`. `Guard` is a public trait, so API-key and
@@ -470,11 +515,38 @@ luxid make:model User -a     model, migration, factory, seeder, policy,
   -m migration   -f factory   -s seeder   -c resource controller   -a all
 ```
 
-`-c` generates an **API** resource controller (`index show store update destroy`; no
-`create`/`edit`) and appends its routes to `routes.rs`. `--plain` yields an empty controller.
+`-c` generates an **API** resource controller (`index show store update destroy`;
+no `create`/`edit`) and appends its routes to `routes.rs`.
 
-Non-generator commands: `new`, `serve`, `migrate`, `migrate:rollback`, `migrate:fresh`,
-`migrate:status`, `db:seed`, `db:sync`, `routes`, `openapi`, `check`.
+### The command line is two binaries, not one
+
+Runtime commands operate on the route table, the migration list and the
+container — all of them types in the *application's* crate. No external binary
+can see them. So:
+
+* **`luxid`** — standalone, installed once, filesystem only: `new`,
+  `make:model`.
+* **The app's own binary** — `cargo run -- serve | migrate | migrate:rollback |
+  migrate:fresh | migrate:status | routes | openapi`, wired up by one line in
+  `main.rs`:
+
+  ```rust
+  luxid::cli::run::<migration::Migrator>(app::build().await?).await
+  ```
+
+This is the split loco uses, for the same reason. `migrate:fresh` requires
+`--force`, because dropping every table should not follow from a mistyped
+command in the wrong shell.
+
+Registration uses markers in the generated files, and inserts *above* them so
+repeated generation stays chronological. Writing refuses if any target file
+exists and writes nothing in that case: a half-applied generator is worse than
+one that declined.
+
+The linker tuning in `.cargo/config.toml` ships **commented out**. Enabling mold
+by default produces a project that does not compile on a machine without it —
+and that file is committed, so it would break teammates too. `luxid new` prints
+a hint only when mold is actually on `PATH`.
 
 ### No `--fields`
 
@@ -578,6 +650,87 @@ hashing) · CLI with `make:model` · testing (`TestApp`, factories, rollback) ·
 | later | Telescope-style dev dashboard |
 | later | SSR views |
 
+### Performance
+
+Measured, not asserted. `cargo bench -p luxid --bench overhead` compares three
+variants serving byte-identical responses, driven in-process so the numbers
+isolate framework cost rather than kernel and TCP behaviour.
+
+| Variant | µs/request | req/s/core | vs salvo |
+|---|---:|---:|---:|
+| bare salvo | 2.38 | 419,000 | — |
+| luxid, no middleware | 3.36 | 298,000 | +0.97 µs |
+| luxid + 2 middleware + container | 4.72 | 212,000 | +2.33 µs |
+| luxid + JWT guard | 9.34 | 107,000 | +6.95 µs |
+| luxid, realistic stack | 12.59 | 79,000 | +10.20 µs |
+
+Reference hardware: Intel i7-4980HQ (2014, 4 cores), single-threaded.
+
+**Read the differences, not the absolutes.** Requests are driven through
+`salvo::test::TestClient`, which adds a fixed per-iteration cost to every
+variant. The absolute figures are therefore a latency floor, not a throughput
+claim for a networked server. Every variant sends an identical request,
+including the `authorization` header the unauthenticated ones ignore, so no
+driver-side cost is charged to one variant and not another.
+
+What the decomposition says:
+
+* **The framework floor is ~1 µs per request** — context construction, the
+  dispatch chain, and response translation. That is the price of `HttpContext`
+  and of sealing salvo away.
+* **Each middleware layer costs roughly 0.7 µs**, including a container
+  resolution. Boxed futures and the owned context, as designed.
+* **Authentication dominates the realistic stack.** The JWT guard adds ~4.6 µs,
+  of which 3.18 µs is `Jwt::verify` alone with no HTTP involved. That is
+  `jsonwebtoken`'s cost, not Luxid's.
+
+#### Measuring on this machine
+
+The reference box runs other workloads (load average ~2.7 during these runs).
+Comparisons **within** one `cargo bench` invocation are sound, because every
+variant is measured back to back under the same conditions. Comparisons
+**across** invocations are not: an early attempt to compare crypto providers in
+separate runs produced a confident, reversed conclusion. Differences below
+roughly 100 ns are not resolvable here at all.
+
+#### Crypto provider: measured, then declined
+
+`jsonwebtoken` offers `rust_crypto` (pure Rust) and `aws_lc_rs` (C library).
+Measured with interleaved runs under matched load:
+
+| Provider | `Jwt::verify` |
+|---|---:|
+| `rust_crypto` | 3.52 µs / 3.64 µs |
+| `aws_lc_rs` | 2.92 µs |
+
+`aws_lc_rs` is roughly **18% faster on verification**, which is about **5% of a
+realistic authenticated request**. It requires cmake and a C compiler.
+
+Offering both as features was built and then reverted. Because four crates
+depend on `luxid-core`, feature unification silently enables *both* providers
+unless every dependency edge sets `default-features = false`, and `jsonwebtoken`
+then panics at runtime rather than failing to build. Making that safe means
+`cfg`-gating `Jwt` as a public type. That is too much machinery for 5%.
+
+**Decision: `rust_crypto`, hardcoded.** Building a Luxid app requires no C
+toolchain. Adding the option later is not a breaking change, and the number
+above is what it would buy.
+
+#### Addressed
+
+* The JWT guard no longer copies the bearer token. `bearer_token()` borrows
+  `ctx.request` while `ctx.auth` is written through a disjoint field borrow, so
+  authenticated routes lose one allocation per request. The saving is below this
+  machine's resolution; it is a removal of work, not a measured win.
+
+#### Known and not addressed
+
+* `Container::scope()` allocates per request even when nothing is bound.
+  Deliberately left alone: the cost is one small `Arc`, far below what can be
+  measured here, and optimising what cannot be measured is how frameworks
+  acquire complexity without acquiring speed.
+* `Identity` allocates a claims map per request.
+
 ### Two roadmap decisions
 
 **Stay on 0.x until Inertia and jobs land.** API decisions become permanent early in a
@@ -624,3 +777,45 @@ Recorded so they are not silently re-litigated. Each has a working default; none
    `find_or_fail` covers it with one line.
 4. **Windows/macOS linker defaults** in the generated `.cargo/config.toml`. Default: mold on
    Linux, platform default elsewhere, resolved at `luxid new` time.
+
+## 17. Implementation status
+
+Recorded because a design document that silently outruns its implementation is
+worse than none. Everything below is measured against the code, not intent.
+
+### Built and tested
+
+Routing, groups and typed middleware attachment · `HttpContext` with extensions
+· errors and RFC 7807 rendering · the middleware chain · the service container
+with boot-time eager resolution and cycle detection · the Lucid layer (models,
+typed columns, relations with batched eager loading, scopes, hooks, strict
+relations) · migrations · validation with async `unique`/`exists` · JWT
+authentication and argon2 hashing · OpenAPI 3.1 · the in-app CLI · `luxid new`
+and `make:model` · the test harness with per-test transaction rollback ·
+an overhead benchmark.
+
+275 tests, clippy clean, rustfmt clean. A generated application builds
+warning-free, migrates, serves, and answers. CI checks all of that, including
+that `luxid new` + `make:model -a` still compiles.
+
+### Specified here but not built
+
+| Item | Section |
+|---|---|
+| `luxid check` | §12 |
+| `ctx.auth.user()` — `Auth` carries identity, not the user record | §11 |
+| Nested eager paths — `.with("posts.comments")` is single-level | §9 |
+
+### Deviations from this document, and why
+
+| Deviation | Reason |
+|---|---|
+| Relations declared in `#[luxid::model(..)]` args, not `#[has_many] fn posts();` | A bodiless `fn` is not parseable Rust |
+| Hooks declared on the derive, not `#[before_save]` in the model block | Hooks must run on the ordinary write path, so the derive must know them |
+| OpenAPI built from the route table, not a static registry | A registry means linker tricks, which §2 ruled out |
+| `luxid` split into a scaffolding binary and an in-app CLI | Runtime commands need types from the application's crate |
+| `jsonwebtoken` provider hardcoded rather than a feature | Feature unification across four crates enables both providers silently |
+| Apps depend on `sea-orm`, `sea-orm-migration` and `schemars` directly | Their derives emit crate-qualified paths; a facade re-export cannot satisfy them |
+
+Each of these is implemented as described in its own section above; this table
+exists so the change is visible rather than buried.

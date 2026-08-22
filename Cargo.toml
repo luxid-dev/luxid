@@ -1,0 +1,61 @@
+[workspace]
+resolver = "3"
+members = ["crates/luxid", "crates/luxid-core", "crates/luxid-macros", "crates/luxid-orm", "crates/luxid-testing", "crates/luxid-cli"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.94"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/jhayonline/luxid"
+
+[workspace.dependencies]
+luxid-core = { path = "crates/luxid-core", version = "0.1.0" }
+luxid-macros = { path = "crates/luxid-macros", version = "0.1.0" }
+luxid-orm = { path = "crates/luxid-orm", version = "0.1.0" }
+luxid-testing = { path = "crates/luxid-testing", version = "0.1.0" }
+luxid-cli = { path = "crates/luxid-cli", version = "0.1.0" }
+
+salvo = { version = "0.95", default-features = false, features = [
+	"server",
+	"http1",
+	"http2",
+	"test",
+] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+bytes = "1"
+thiserror = "2"
+anyhow = "1"
+argon2 = { version = "0.5", features = ["std"] }
+# `rust_crypto` over `aws_lc_rs`: measured ~18% slower on HS256 verification,
+# which is ~5% of a realistic authenticated request — and it needs no C
+# toolchain to build. See the Performance section of the design spec.
+jsonwebtoken = { version = "10", default-features = false, features = ["rust_crypto"] }
+sea-orm-migration = { version = "2.0", default-features = false, features = [
+	"runtime-tokio-rustls",
+	"sqlx-sqlite",
+	"sqlx-postgres",
+] }
+clap = { version = "4.6", features = ["derive"] }
+schemars = "1.2"
+toml = "0.9"
+criterion = { version = "0.8", features = ["async_tokio"] }
+sea-orm = { version = "2.0", default-features = false, features = [
+	"macros",
+	"runtime-tokio-rustls",
+	"sqlx-sqlite",
+	"sqlx-postgres",
+	"with-chrono",
+	"with-json",
+	"with-uuid",
+] }
+syn = { version = "2", features = ["full", "extra-traits"] }
+quote = "1"
+proc-macro2 = "1"
+
+[profile.dev]
+opt-level = 0
+[profile.dev.package."*"]
+opt-level = 3

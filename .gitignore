@@ -1,4 +1,6 @@
 target/
 **/target/
-Cargo.lock
 .env
+
+# Generated apps created while testing the scaffolding.
+/.luxid-verify
