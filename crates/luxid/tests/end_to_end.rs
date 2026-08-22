@@ -54,6 +54,20 @@ impl UsersController {
     fn helper_untouched() -> u8 {
         42
     }
+
+    /// Takes `&HttpContext`, not `HttpContext`. An earlier version of the macro
+    /// counted arguments without checking their type and turned this into a
+    /// route handler, which broke every controller that shares logic this way.
+    async fn shared_helper(ctx: &HttpContext) -> Result<i64> {
+        ctx.params.get("id")
+    }
+
+    /// Proves the helper above is callable from a real action.
+    async fn via_helper(ctx: HttpContext) -> Result<Response> {
+        let id = Self::shared_helper(&ctx).await?;
+
+        ctx.response.ok(json!({ "id": id, "via": "helper" }))
+    }
 }
 
 fn service() -> luxid::__private::salvo::Service {
@@ -64,6 +78,7 @@ fn service() -> luxid::__private::salvo::Service {
                 r.post("/users", UsersController::store);
                 r.get("/users/{id}", UsersController::show);
                 r.delete("/users/{id}", UsersController::destroy);
+                r.get("/helper/{id}", UsersController::via_helper);
             });
         })
         .into_service()
@@ -179,4 +194,35 @@ async fn unrouted_paths_are_not_claimed_by_the_group() {
 #[test]
 fn non_action_items_survive_the_macro() {
     assert_eq!(UsersController::helper_untouched(), 42);
+}
+
+#[tokio::test]
+async fn a_reference_taking_helper_is_not_an_action() {
+    // It must remain callable from an action...
+    let mut res = TestClient::get(format!("{BASE}/helper/7"))
+        .send(&service())
+        .await;
+
+    assert_eq!(res.status_code.map(|s| s.as_u16()), Some(200));
+
+    let body: Value = res.take_json().await.expect("json body");
+    assert_eq!(body["id"], 7);
+    assert_eq!(body["via"], "helper");
+}
+
+#[test]
+fn a_reference_taking_helper_gets_no_route() {
+    let table = App::new()
+        .routes(|r| {
+            r.get("/users", UsersController::index);
+            r.get("/helper/{id}", UsersController::via_helper);
+        })
+        .route_table();
+
+    assert!(
+        table
+            .iter()
+            .all(|route| !route.action.contains("shared_helper")),
+        "a &HttpContext helper must never become a route: {table:#?}"
+    );
 }
