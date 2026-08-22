@@ -33,7 +33,7 @@ pub use luxid_core::{
     Validate, ValidationErrors, validate,
 };
 pub use luxid_core::{
-    adapter, app, auth, container, context, error, http, middleware as mw, router,
+    adapter, app, auth, container, context, error, http, middleware as mw, router, session,
 };
 #[cfg(feature = "orm")]
 pub use luxid_macros::model;
