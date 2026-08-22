@@ -7,10 +7,9 @@ Laravel's controller ergonomics inside a type system that will not bend.
 Built on [salvo](https://salvo.rs), which is sealed inside the framework. Salvo
 types never appear in a Luxid signature.
 
-> **Status: pre-0.1, not published.** The API is unstable and several §0.1
-> features are missing (see [What is not built](#what-is-not-built)). It builds,
-> it is tested, and it runs — but it is not ready to carry anything you care
-> about.
+> **Status: 0.1.0, experimental.** The API will change before 1.0 and some
+> pieces are missing (see [What is not built](#what-is-not-built)). It builds, it
+> is tested, and it runs — but it has not carried a production workload yet.
 
 ## Why another one
 
@@ -30,11 +29,9 @@ salvo. Concretely:
 ## Quickstart
 
 ```sh
-cargo install --path crates/luxid-cli     # provides the `luxid` binary
+cargo install luxid-cli     # provides the `luxid` binary
 
-# --luxid-path is required until Luxid is published: it points the generated
-# project at your local checkout instead of at crates.io.
-luxid new blogapp --luxid-path /path/to/luxid
+luxid new blogapp
 cd blogapp
 
 cargo run -- migrate    # SQLite by default; no infrastructure needed
@@ -334,7 +331,6 @@ hashing · OpenAPI 3.1 · in-app CLI (`serve`, `migrate*`, `routes`, `openapi`) 
 - **Nested eager paths** — `.with("posts.comments")` is single-level only.
 - **`luxid check`** — planned, not written.
 - **Inertia.js** and **background jobs** — planned for 0.2.
-- **Not published.** `luxid new` needs `--luxid-path` until it is.
 
 ## A note on dependencies
 
@@ -350,6 +346,12 @@ worth knowing if you add an entity to a crate that lacks them.
 cargo test                              # 275 tests
 cargo clippy --all-targets
 cargo bench -p luxid --bench overhead
+```
+
+When working on the framework itself, point a generated app at your checkout:
+
+```sh
+luxid new demoapp --luxid-path /path/to/luxid
 ```
 
 The design document — including the reasoning behind every decision above, the

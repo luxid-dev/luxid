@@ -94,18 +94,6 @@ fn run() -> Result<(), String> {
                 None => Dependency::Version(LUXID_VERSION.to_owned()),
             };
 
-            // Luxid is not on crates.io yet, so a version dependency produces a
-            // project that cannot resolve. Say so rather than letting `cargo
-            // build` deliver the news.
-            if matches!(dependency, Dependency::Version(_)) {
-                eprintln!(
-                    "note: luxid {LUXID_VERSION} is not published yet, so this project will not \
-                     build as generated.\n      Pass --luxid-path <checkout> to depend on a local \
-                     copy of the framework."
-                );
-                eprintln!();
-            }
-
             let plan = scaffold::new_app(&name, &dependency);
             let written = scaffold::write(&plan, &root).map_err(|err| err.to_string())?;
 
