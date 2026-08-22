@@ -1974,7 +1974,7 @@ checksum = "0ceec5bc11778974d1bcb055b18002eba7f4b3518b6a0081b3af5f21666da9ad"
 
 [[package]]
 name = "luxid"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "criterion",
  "luxid-cli",
@@ -1993,7 +1993,7 @@ dependencies = [
 
 [[package]]
 name = "luxid-cli"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "clap",
  "luxid-core",
@@ -2005,7 +2005,7 @@ dependencies = [
 
 [[package]]
 name = "luxid-core"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "argon2",
@@ -2021,7 +2021,7 @@ dependencies = [
 
 [[package]]
 name = "luxid-macros"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2030,7 +2030,7 @@ dependencies = [
 
 [[package]]
 name = "luxid-orm"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "luxid-core",
  "luxid-macros",
@@ -2043,7 +2043,7 @@ dependencies = [
 
 [[package]]
 name = "luxid-testing"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "luxid-core",
  "salvo",
