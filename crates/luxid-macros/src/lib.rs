@@ -194,10 +194,23 @@ pub fn middleware(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
 /// Actions are `async fn name(ctx: HttpContext) -> Result<Response>`. Anything
 /// else in the block is a helper and stays untouched.
+///
+/// The argument's *type* is checked, not merely its count: a helper taking
+/// `&HttpContext` is a helper, and turning it into a route would be surprising.
 fn is_action(func: &ImplItemFn) -> bool {
-    func.sig.asyncness.is_some()
-        && func.sig.inputs.len() == 1
-        && !matches!(func.sig.inputs.first(), Some(FnArg::Receiver(_)))
+    if func.sig.asyncness.is_none() || func.sig.inputs.len() != 1 {
+        return false;
+    }
+
+    let Some(FnArg::Typed(argument)) = func.sig.inputs.first() else {
+        return false;
+    };
+
+    // By name rather than by resolution — a macro cannot resolve types, and an
+    // alias for `HttpContext` is vanishingly rare next to helpers taking a
+    // reference to one.
+    matches!(&*argument.ty, Type::Path(path)
+        if path.path.segments.last().is_some_and(|last| last.ident == "HttpContext"))
 }
 
 fn inherent_ident(block: &ItemImpl) -> syn::Result<syn::Ident> {
