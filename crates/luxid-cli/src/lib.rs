@@ -169,6 +169,14 @@ async fn dispatch<M: MigratorTrait>(app: App, command: Command) -> Result<()> {
 
                 // The entity must be refreshed too, or the factory below ends
                 // up referencing columns the entity does not declare.
+                // Attributes the user wrote on a field must survive the
+                // regeneration — `#[serde(skip_serializing)]` on a password hash
+                // silently becoming "sent to every client" is not an acceptable
+                // outcome of running a sync command.
+                let carried = std::fs::read_to_string(format!("src/entities/{}.rs", table.name))
+                    .map(|source| crate::scaffold::field_attributes(&source))
+                    .unwrap_or_default();
+
                 let entity_body: String = table
                     .columns
                     .iter()
@@ -179,11 +187,15 @@ async fn dispatch<M: MigratorTrait>(app: App, command: Command) -> Result<()> {
                             column.rust_type().to_owned()
                         };
 
+                        let mut lines: Vec<String> =
+                            carried.get(&column.name).cloned().unwrap_or_default();
+
                         if column.primary_key {
-                            format!("#[sea_orm(primary_key)]\npub {}: {ty},", column.name)
-                        } else {
-                            format!("pub {}: {ty},", column.name)
+                            lines.insert(0, "#[sea_orm(primary_key)]".to_owned());
                         }
+
+                        lines.push(format!("pub {}: {ty},", column.name));
+                        lines.join("\n")
                     })
                     .collect::<Vec<_>>()
                     .join("\n");

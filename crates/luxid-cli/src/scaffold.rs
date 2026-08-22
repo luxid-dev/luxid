@@ -7,7 +7,7 @@
 //! Writing never overwrites. A generator that clobbers hand-written code once
 //! is a generator nobody runs again.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
 use luxid_core::error::{Error, Result};
@@ -1095,5 +1095,81 @@ mod refresh_tests {
     #[test]
     fn a_file_without_markers_is_left_alone() {
         assert!(refresh_fields("fn nothing() {}", "a: Set(1),").is_none());
+    }
+}
+
+/// Attributes a user wrote above each field inside the markers.
+///
+/// `db:sync` regenerates the field list, which would otherwise discard things
+/// like `#[serde(skip_serializing)]` on a password hash — a silent change from
+/// "never sent" to "sent to every client". Attributes are carried across
+/// instead.
+///
+/// `#[sea_orm(primary_key)]` is excluded because the generator emits it itself.
+pub fn field_attributes(source: &str) -> BTreeMap<String, Vec<String>> {
+    let mut found: BTreeMap<String, Vec<String>> = BTreeMap::new();
+
+    let Some(open) = source.find(MARK_FIELDS_OPEN) else {
+        return found;
+    };
+    let Some(close) = source[open..]
+        .find(MARK_FIELDS_CLOSE)
+        .map(|index| index + open)
+    else {
+        return found;
+    };
+
+    let mut pending: Vec<String> = Vec::new();
+
+    for line in source[open..close].lines() {
+        let trimmed = line.trim();
+
+        if trimmed.starts_with("#[") {
+            if trimmed != "#[sea_orm(primary_key)]" {
+                pending.push(trimmed.to_owned());
+            }
+            continue;
+        }
+
+        if let Some(rest) = trimmed.strip_prefix("pub ")
+            && let Some((name, _)) = rest.split_once(':')
+            && !pending.is_empty()
+        {
+            found.insert(name.trim().to_owned(), std::mem::take(&mut pending));
+            continue;
+        }
+
+        pending.clear();
+    }
+
+    found
+}
+
+#[cfg(test)]
+mod attribute_tests {
+    use super::*;
+
+    const SOURCE: &str = "pub struct Model {\n    // <luxid:fields>\n    #[sea_orm(primary_key)]\n    pub id: i64,\n    #[serde(skip_serializing)]\n    pub password: String,\n    pub email: String,\n    // </luxid:fields>\n}\n";
+
+    #[test]
+    fn carries_user_written_attributes_across_a_resync() {
+        let found = field_attributes(SOURCE);
+
+        assert_eq!(
+            found.get("password"),
+            Some(&vec!["#[serde(skip_serializing)]".to_owned()])
+        );
+        assert_eq!(found.get("email"), None, "no attributes, nothing to carry");
+    }
+
+    #[test]
+    fn the_generated_primary_key_attribute_is_not_carried() {
+        // The generator emits it, so carrying it too would duplicate it.
+        assert_eq!(field_attributes(SOURCE).get("id"), None);
+    }
+
+    #[test]
+    fn a_file_without_markers_yields_nothing() {
+        assert!(field_attributes("pub struct Model {}").is_empty());
     }
 }
