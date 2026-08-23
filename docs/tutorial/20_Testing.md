@@ -205,7 +205,7 @@ identical rows break any test that asserts on a unique column.
 
 States apply in order, so a later one wins. `create_one` ignores `count`.
 
-`luxid make:model User -f` generates the file; `cargo run -- db:sync` fills in
+`luxid make:model User -f` generates the file; `cargo luxid db:sync` fills in
 the required columns from your schema.
 
 ## What to test

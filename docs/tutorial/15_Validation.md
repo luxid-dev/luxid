@@ -233,7 +233,7 @@ src/validators/
 ```
 
 `luxid make:model User -a` generates the file with both structs and empty rule
-lists. `cargo run -- db:sync` can refresh the field list from the schema, and
+lists. `cargo luxid db:sync` can refresh the field list from the schema, and
 touches only what lies between the markers — the rules you wrote survive.
 
 ## Building errors by hand

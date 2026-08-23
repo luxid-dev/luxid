@@ -86,7 +86,7 @@ pub fn register(r: &mut Router) {
 ```
 
 When a route 404s, you can find out why by reading that file, or by running
-`cargo run -- routes`. Nothing is hidden.
+`cargo luxid routes`. Nothing is hidden.
 
 ### 4. The mistakes should be loud
 

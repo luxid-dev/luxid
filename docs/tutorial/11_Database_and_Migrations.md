@@ -177,10 +177,10 @@ enum Users {
 ## Running them
 
 ```sh
-cargo run -- migrate            # apply everything pending
-cargo run -- migrate:status     # what has run
-cargo run -- migrate:rollback   # undo the last one
-cargo run -- migrate:fresh --force   # drop everything and rebuild
+cargo luxid migrate            # apply everything pending
+cargo luxid migrate:status     # what has run
+cargo luxid migrate:rollback   # undo the last one
+cargo luxid migrate:fresh --force   # drop everything and rebuild
 ```
 
 `migrate:fresh` requires `--force` because it destroys data, and that should not
@@ -236,7 +236,7 @@ Order matters: they run top to bottom.
 After a migration, your Rust code needs to know about the new columns:
 
 ```sh
-cargo run -- db:sync
+cargo luxid db:sync
 ```
 
 That reads the **live database** and refreshes the field lists in your entities
@@ -257,8 +257,8 @@ The usual loop is therefore:
 ```sh
 luxid make:model Post -a     # generate
 # edit the migration to add columns
-cargo run -- migrate         # apply
-cargo run -- db:sync         # bring the code into step
+cargo luxid migrate         # apply
+cargo luxid db:sync         # bring the code into step
 ```
 
 ## Transactions

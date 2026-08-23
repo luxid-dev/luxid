@@ -128,7 +128,7 @@ A controller with none of the five resource actions cannot be passed to
 ## Reading the table
 
 ```sh
-cargo run -- routes
+cargo luxid routes
 ```
 
 ```

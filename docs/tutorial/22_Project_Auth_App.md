@@ -102,8 +102,8 @@ chapter 15's `unique` rule is the *friendly* version that produces a `422`
 instead of a `500`. You want both.
 
 ```sh
-cargo run -- migrate
-cargo run -- db:sync
+cargo luxid migrate
+cargo luxid db:sync
 ```
 
 `db:sync` fills the columns into `src/entities/users.rs` and
@@ -121,7 +121,7 @@ use sea_orm::entity::prelude::*;
 #[luxid(before_create = Self::hash_password)]
 #[sea_orm(table_name = "users")]
 pub struct Model {
-    // <luxid:fields>  refreshed by `cargo run -- db:sync`
+    // <luxid:fields>  refreshed by `cargo luxid db:sync`
     #[sea_orm(primary_key)]
     pub id: i64,
     pub name: String,

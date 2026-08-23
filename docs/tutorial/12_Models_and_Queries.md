@@ -19,7 +19,7 @@ use sea_orm::entity::prelude::*;
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, serde::Serialize, luxid::Model)]
 #[sea_orm(table_name = "posts")]
 pub struct Model {
-    // <luxid:fields>  refreshed by `cargo run -- db:sync`
+    // <luxid:fields>  refreshed by `cargo luxid db:sync`
     #[sea_orm(primary_key)]
     pub id: i64,
     pub title: String,

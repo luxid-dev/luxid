@@ -61,15 +61,28 @@ entity when they do.
 at all and says which clashed — a half-applied generator is worse than one that
 declined.
 
-## `cargo run --` — your application
+## `cargo luxid` — your application
 
 These need your routes, migrations, and services, so they live in your binary.
+
+`cargo luxid` is a cargo alias, written into `.cargo/config.toml` by
+`luxid new`:
+
+```toml
+[alias]
+luxid = "run --"
+```
+
+Cargo expands it before dispatch, so `cargo luxid migrate` and
+`cargo run -- migrate` are the same command and either will do. If you are
+adding Luxid to a project that already existed, copy those two lines across to
+get the shorter form.
 
 ### Serving
 
 ```sh
 cargo run              # serve (the default)
-cargo run -- serve     # the same thing
+cargo luxid serve      # the same thing
 ```
 
 Address comes from `LUXID_ADDR`, then `PORT`, then `127.0.0.1:3000`.
@@ -77,12 +90,12 @@ Address comes from `LUXID_ADDR`, then `PORT`, then `127.0.0.1:3000`.
 ### Migrations
 
 ```sh
-cargo run -- migrate                  # apply everything pending
-cargo run -- migrate --steps 1        # apply at most one
-cargo run -- migrate:rollback         # undo the last
-cargo run -- migrate:rollback --steps 3
-cargo run -- migrate:status           # what has run
-cargo run -- migrate:fresh --force    # drop everything and rebuild
+cargo luxid migrate                  # apply everything pending
+cargo luxid migrate --steps 1        # apply at most one
+cargo luxid migrate:rollback         # undo the last
+cargo luxid migrate:rollback --steps 3
+cargo luxid migrate:status           # what has run
+cargo luxid migrate:fresh --force    # drop everything and rebuild
 ```
 
 `migrate:fresh` requires `--force`, because destroying every table should not
@@ -91,8 +104,8 @@ follow from a mistyped command in the wrong shell.
 ### Schema sync
 
 ```sh
-cargo run -- db:sync
-cargo run -- db:sync --dry-run
+cargo luxid db:sync
+cargo luxid db:sync --dry-run
 ```
 
 Reads the live database and refreshes the field lists in your entities and
@@ -104,7 +117,7 @@ Run it after every migration.
 ### Inspecting
 
 ```sh
-cargo run -- routes
+cargo luxid routes
 ```
 
 ```
@@ -116,8 +129,8 @@ GET     /api/posts/{id}  PostsController::show     [1 middleware]
 The first thing to check when an endpoint behaves unexpectedly.
 
 ```sh
-cargo run -- openapi
-cargo run -- openapi --pretty --title "Blog API" --version 1.0.0
+cargo luxid openapi
+cargo luxid openapi --pretty --title "Blog API" --version 1.0.0
 ```
 
 ## Cargo commands worth knowing
@@ -136,10 +149,10 @@ luxid new blog && cd blog
 
 luxid make:model Post -a
 # edit migration/src/m..._create_posts.rs to add columns
-cargo run -- migrate
-cargo run -- db:sync
+cargo luxid migrate
+cargo luxid db:sync
 
-cargo run -- routes
+cargo luxid routes
 cargo run
 ```
 
@@ -147,13 +160,13 @@ cargo run
 
 | Symptom | Check |
 |---|---|
-| 404 on a route you added | `cargo run -- routes` — is it registered? |
+| 404 on a route you added | `cargo luxid routes` — is it registered? |
 | "file not found for module" | You forgot `pub mod ...;` in the parent `mod.rs` |
 | "no database connection is in scope" | `WithDatabase` is missing from `app.rs` |
 | "no provider bound for `X`" | Register it in `providers()` |
 | "the `x` relation was not loaded" | Add `.with("x")` to the query |
 | "no session is active" | Add `.middleware(Auth::session())` |
-| Column not found after a migration | `cargo run -- db:sync` |
+| Column not found after a migration | `cargo luxid db:sync` |
 
 Luxid's error messages generally name the fix. When one does not, that is worth
 reporting as a bug.

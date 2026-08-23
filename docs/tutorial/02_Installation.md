@@ -66,12 +66,12 @@ luxid new my-app
 luxid make:model Post -a
 ```
 
-**`cargo run --`** — your *application's own* command line. It runs migrations,
+**`cargo luxid`** — your *application's own* command line. It runs migrations,
 prints routes, serves.
 
 ```sh
-cargo run -- migrate
-cargo run -- routes
+cargo luxid migrate
+cargo luxid routes
 cargo run                  # serve
 ```
 
@@ -79,6 +79,10 @@ Why two? Because `migrate` and `routes` need to know about *your* migrations and
 *your* routes — and those are Rust types that live in your crate. No external
 program can see them. So those commands live inside your application's binary,
 wired up by one line in `main.rs`.
+
+`cargo luxid` is a cargo alias that `luxid new` writes into
+`.cargo/config.toml`; it expands to `cargo run --`, so the two are
+interchangeable. Chapter 21 has the details.
 
 Scaffolding is different: creating files needs no knowledge of your code, so it
 lives in the standalone tool.

@@ -526,7 +526,7 @@ can see them. So:
 
 * **`luxid`** — standalone, installed once, filesystem only: `new`,
   `make:model`.
-* **The app's own binary** — `cargo run -- serve | migrate | migrate:rollback |
+* **The app's own binary** — `cargo luxid serve | migrate | migrate:rollback |
   migrate:fresh | migrate:status | routes | openapi`, wired up by one line in
   `main.rs`:
 

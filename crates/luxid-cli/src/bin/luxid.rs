@@ -108,7 +108,7 @@ fn run() -> Result<(), String> {
             println!();
             println!("    cd {name}");
             println!("    cargo run              # serves on http://127.0.0.1:3000");
-            println!("    cargo run -- routes");
+            println!("    cargo luxid routes");
 
             Ok(())
         }
@@ -146,7 +146,7 @@ fn run() -> Result<(), String> {
             if flags.migration {
                 println!();
                 println!("Fill in the migration's columns, then:");
-                println!("    cargo run -- migrate");
+                println!("    cargo luxid migrate");
             }
 
             Ok(())

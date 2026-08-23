@@ -80,8 +80,8 @@ alternative — orphaned rows pointing at a user that no longer exists — is wo
 Note `Users` is declared again here. Each migration is self-contained.
 
 ```sh
-cargo run -- migrate
-cargo run -- db:sync
+cargo luxid migrate
+cargo luxid db:sync
 ```
 
 ## 3. Relations
@@ -628,7 +628,7 @@ flaw in this kind of API, and they only show up in tests that use two users.
 - **Relations**: give todos a `Category`, load with `.with()`
 - **Sessions**: add `Auth::session()` alongside the token guard for a browser
   client — `ctx.auth` reads the same either way
-- **OpenAPI**: `cargo run -- openapi --pretty` and load it into Swagger UI
+- **OpenAPI**: `cargo luxid openapi --pretty` and load it into Swagger UI
 - **Postgres**: change `DATABASE_URL`; nothing else
 
 ---

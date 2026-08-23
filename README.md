@@ -34,7 +34,7 @@ cargo install luxid-cli     # provides the `luxid` binary
 luxid new blogapp
 cd blogapp
 
-cargo run -- migrate    # SQLite by default; no infrastructure needed
+cargo luxid migrate     # SQLite by default; no infrastructure needed
 cargo run               # http://127.0.0.1:3000
 ```
 
@@ -48,7 +48,7 @@ which writes the model, migration, factory, seeder, policy, form requests, and
 an API resource controller — and registers its routes:
 
 ```sh
-cargo run -- routes
+cargo luxid routes
 ```
 
 ```
@@ -269,7 +269,7 @@ UserFactory::new().state(|row| row.role = Set("admin".into())).create_one().awai
 ```
 
 A factory says what a typical row looks like; a test overrides only what it
-cares about. `cargo run -- db:sync` reads the live schema and refreshes the
+cares about. `cargo luxid db:sync` reads the live schema and refreshes the
 generated field list, touching only what lies between the `<luxid:fields>`
 markers — so rules you wrote outside them survive.
 

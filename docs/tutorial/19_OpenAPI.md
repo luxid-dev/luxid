@@ -7,8 +7,8 @@ code.
 ## Getting one
 
 ```sh
-cargo run -- openapi > openapi.json
-cargo run -- openapi --pretty --title "Blog API" --version 1.0.0
+cargo luxid openapi > openapi.json
+cargo luxid openapi --pretty --title "Blog API" --version 1.0.0
 ```
 
 Every registered route appears, whether or not you documented it.
@@ -108,7 +108,7 @@ pub struct DocsController;
 #[luxid::controller]
 impl DocsController {
     async fn openapi(ctx: HttpContext) -> Result<Response> {
-        // Embedded at build time by `cargo run -- openapi > openapi.json`.
+        // Embedded at build time by `cargo luxid openapi > openapi.json`.
         ctx.response
             .header("content-type", "application/json")
             .text(include_str!("../../openapi.json"))
@@ -136,7 +136,7 @@ linker tricks. Luxid walks the **route table** instead — the same explicit
 registration a request goes through.
 
 The practical consequence: a route missing from your document is a route missing
-from `cargo run -- routes`. There is no third place where an endpoint might be
+from `cargo luxid routes`. There is no third place where an endpoint might be
 hiding.
 
 ---

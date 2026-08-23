@@ -239,7 +239,7 @@ curl 'localhost:3000/api/hello?name=Ada&name=Grace'   # first one wins
 ## Seeing your routes
 
 ```sh
-cargo run -- routes
+cargo luxid routes
 ```
 
 ```
@@ -257,7 +257,7 @@ registered, or the path differs from what you are requesting.
 - The three steps for adding a controller
 - That `ctx.request.input` reads from the query string or body, and that `?`
   turns bad input into a proper error response
-- That `cargo run -- routes` answers "why is this 404ing?"
+- That `cargo luxid routes` answers "why is this 404ing?"
 
 ---
 

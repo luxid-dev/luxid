@@ -133,7 +133,7 @@ With `Timer` global and `Auth::jwt()` on a group:
 You can see the depth per route:
 
 ```sh
-cargo run -- routes
+cargo luxid routes
 ```
 
 ```
