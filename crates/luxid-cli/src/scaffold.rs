@@ -622,6 +622,11 @@ impl {policy} {{
             format!("src/factories/{snake}_factory.rs"),
             format!(
                 r#"use luxid::prelude::*;
+
+// Used by the field list below, which `cargo luxid db:sync` fills in from the
+// live schema. Allowed rather than left to warn: a table whose columns are all
+// nullable syncs to an empty list, so the import can be legitimately unused.
+#[allow(unused_imports)]
 use sea_orm::ActiveValue::Set;
 
 use crate::entities::{plural};
