@@ -1,6 +1,6 @@
 //! `#[derive(Validate)]`.
 //!
-//! Synchronous rules expand inline. Asynchronous rules expand into Lucid
+//! Synchronous rules expand inline. Asynchronous rules expand into data-layer
 //! queries against the ambient connection, which is why this derive needs no
 //! database wiring of its own.
 
@@ -446,7 +446,7 @@ fn expand_rule_on(
 
             quote! {
                 {
-                    let query = <#model as #krate::Lucid>::query()
+                    let query = <#model as #krate::Record>::query()
                         .where_eq(<#model>::#column, ::std::clone::Clone::clone(#value));
                     #exclusion
 
@@ -467,7 +467,7 @@ fn expand_rule_on(
                 .unwrap_or_else(|| "does not exist".to_owned());
             quote! {
                 {
-                    let found = <#model as #krate::Lucid>::query()
+                    let found = <#model as #krate::Record>::query()
                         .where_eq(<#model>::#column, ::std::clone::Clone::clone(#value))
                         .exists()
                         .await?;

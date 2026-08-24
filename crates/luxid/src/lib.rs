@@ -39,7 +39,7 @@ pub use luxid_core::{
 pub use luxid_macros::model;
 pub use luxid_macros::{Validate, controller, middleware, test};
 
-/// Derive Lucid operations and typed columns for a SeaORM entity model.
+/// Derive model operations and typed columns for a SeaORM entity model.
 ///
 /// Typed columns are the point: a column's `Value` is its actual Rust type, so
 /// a mismatched comparison is a compile error rather than a runtime surprise.
@@ -114,10 +114,10 @@ pub use luxid_macros::{Validate, controller, middleware, test};
 pub use luxid_macros::Model;
 #[cfg(feature = "orm")]
 pub use luxid_orm::model::{ColumnRef, delete_by_id, insert, insert_without_hooks, update};
-/// The Lucid data layer.
+/// The data layer.
 #[cfg(feature = "orm")]
 pub use luxid_orm::{
-    Db, Factory, FactoryBuilder, Hooks, Lucid, Paginated, Query, Relatable, Relations,
+    Db, Factory, FactoryBuilder, Hooks, Paginated, Query, Record, Relatable, Relations,
     WithDatabase, WithRollbackDatabase, sea_orm, set_strict_relations, strict_relations,
 };
 
@@ -158,5 +158,5 @@ pub mod prelude {
     };
 
     #[cfg(feature = "orm")]
-    pub use crate::{Db, Factory, Lucid, Paginated, WithDatabase, WithRollbackDatabase};
+    pub use crate::{Db, Factory, Paginated, Record, WithDatabase, WithRollbackDatabase};
 }

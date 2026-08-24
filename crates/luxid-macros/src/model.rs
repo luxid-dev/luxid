@@ -1,8 +1,8 @@
-//! `#[derive(Model)]` — turns a SeaORM entity model into a Lucid model.
+//! `#[derive(Model)]` — turns a SeaORM entity model into a Luxid model.
 //!
 //! Emits three things:
 //!
-//! * `impl Lucid`, so `User::find`, `find_or_fail`, `query` and friends exist.
+//! * `impl Record`, so `User::find`, `find_or_fail`, `query` and friends exist.
 //! * A zero-sized type per column carrying that column's Rust type, exposed as
 //!   an associated constant so it reads `User::team_id`.
 //! * `impl ColumnRef` for the entity's own `Column` enum, keeping the untyped
@@ -117,7 +117,7 @@ fn expand(input: DeriveInput) -> syn::Result<TokenStream2> {
             #(#hook_impls)*
         }
 
-        impl #krate::Lucid for #ident {
+        impl #krate::Record for #ident {
             type Entity = Entity;
             const MODEL: &'static str = #model_name;
         }

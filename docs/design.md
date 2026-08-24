@@ -56,7 +56,7 @@ matters more than crate independence for a framework.
 | `luxid` | Facade. The only dependency an app declares. Re-exports, feature-gated. |
 | `luxid-core` | `HttpContext`, `Request`, `Response`, `Error`, router, middleware, container, **the entire salvo adapter** |
 | `luxid-macros` | `#[controller]`, `#[openapi]`, `#[middleware]`, `#[model]`, `derive(Model)`, `derive(Validate)`, `#[test]` |
-| `luxid-orm` | Lucid facade over SeaORM: `Model` trait, query builder, relations, pagination, hooks, scopes |
+| `luxid-orm` | The data layer over SeaORM: the `Record` trait, query builder, relations, pagination, hooks, scopes |
 | `luxid-cli` | The `luxid` binary |
 | `luxid-testing` | `TestApp`, factories, transaction-rollback harness |
 
@@ -79,7 +79,7 @@ my-app/
     ├── routes.rs         # explicit route table; CLI appends, humans read
     ├── controllers/
     ├── entities/         # sea-orm-cli output — never hand-edited
-    ├── models/           # Lucid models — yours, never clobbered
+    ├── models/           # your models — yours, never clobbered
     ├── validators/       # StoreUser / UpdateUser
     ├── services/  middleware/  policies/  config/
 └── tests/
@@ -335,13 +335,13 @@ This is a visible, intentional divergence from Laravel and should be documented 
 
 ---
 
-## 9. The Lucid layer
+## 9. The data layer
 
 ### Models
 
 `sea-orm-cli` owns `entities/`. Luxid adds a derive and a relations bag. Verified against
 sea-orm-macros 2.0.2: `#[sea_orm(ignore)]` permits non-column fields on a model, so no
-`Record<T>` wrapper is needed.
+wrapper type is needed.
 
 ```rust
 // src/entities/users.rs — generated
@@ -634,7 +634,7 @@ async fn it_lists_only_my_users(app: TestApp) -> Result<()> {
 ### 0.1 ships
 
 Routing, groups, resource routes · `HttpContext`, Request/Response · errors + RFC 7807 ·
-middleware · container/providers · Lucid facade, migrations, strict relations · validation
+middleware · container/providers · the data layer, migrations, strict relations · validation
 including async `unique`/`exists` · OpenAPI from attributes · auth (JWT + session, policies,
 hashing) · CLI with `make:model` · testing (`TestApp`, factories, rollback) · config + env.
 
@@ -787,7 +787,7 @@ worse than none. Everything below is measured against the code, not intent.
 
 Routing, groups and typed middleware attachment · `HttpContext` with extensions
 · errors and RFC 7807 rendering · the middleware chain · the service container
-with boot-time eager resolution and cycle detection · the Lucid layer (models,
+with boot-time eager resolution and cycle detection · the data layer (models,
 typed columns, relations with batched eager loading, scopes, hooks, strict
 relations) · migrations · validation with async `unique`/`exists` · JWT
 authentication and argon2 hashing · OpenAPI 3.1 · the in-app CLI · `luxid new`

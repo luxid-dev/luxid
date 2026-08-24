@@ -6,7 +6,7 @@
 //!
 //! This module knows nothing about databases, and it does not need to: async
 //! rules run through the request's *ambient* connection, the same task-local
-//! the Lucid layer uses. So the trait takes no database argument, and
+//! the data layer uses. So the trait takes no database argument, and
 //! `luxid-core` keeps no dependency on `luxid-orm`.
 
 use crate::error::{Error, Result, ValidationErrors};

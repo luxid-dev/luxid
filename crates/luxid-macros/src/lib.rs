@@ -235,7 +235,7 @@ fn inherent_ident(block: &ItemImpl) -> syn::Result<syn::Ident> {
     }
 }
 
-/// Derive Lucid model operations and typed columns for a SeaORM entity model.
+/// Derive model operations and typed columns for a SeaORM entity model.
 ///
 /// The model name used in 404s comes from `#[sea_orm(table_name = "...")]`,
 /// singularized. Override it with `#[luxid(name = "Person")]` when the naive

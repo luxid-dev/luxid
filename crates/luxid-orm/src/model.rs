@@ -82,8 +82,8 @@ where
         }
     }
 
-    /// Escape hatch: reach the underlying SeaORM `Select` for anything Lucid
-    /// does not express.
+    /// Escape hatch: reach the underlying SeaORM `Select` for anything the data
+    /// layer does not express.
     pub fn into_inner(self) -> Select<E> {
         self.select
     }
@@ -237,11 +237,11 @@ where
     /// The first row, or a 404 naming the model.
     pub async fn first_or_fail(self) -> Result<E::Model>
     where
-        E::Model: Lucid<Entity = E>,
+        E::Model: Record<Entity = E>,
     {
         self.first()
             .await?
-            .ok_or_else(|| Error::not_found(<E::Model as Lucid>::MODEL, "?"))
+            .ok_or_else(|| Error::not_found(<E::Model as Record>::MODEL, "?"))
     }
 
     pub async fn count(self) -> Result<u64> {
@@ -328,7 +328,7 @@ async fn load_all<M>(loaders: &[Loader<M>], rows: &mut Vec<M>) -> Result<()> {
 }
 
 /// A model that declares relations. Implemented by `#[luxid::model]`.
-pub trait Relatable: Lucid {
+pub trait Relatable: Record {
     fn relations(&self) -> &Relations;
 
     fn relations_mut(&mut self) -> &mut Relations;
@@ -338,7 +338,7 @@ pub trait Relatable: Lucid {
 }
 
 /// Model operations, implemented by `#[derive(Model)]`.
-pub trait Lucid: FromQueryResult + Send + Sync + Sized + 'static {
+pub trait Record: FromQueryResult + Send + Sync + Sized + 'static {
     type Entity: EntityTrait<Model = Self>;
 
     /// Name used in 404s and diagnostics.

@@ -1,4 +1,4 @@
-//! Lucid exercised against a real SQLite database.
+//! The data layer exercised against a real SQLite database.
 //!
 //! SQLite is used so the suite runs on any machine with no provisioning.
 //!
@@ -6,7 +6,7 @@
 //! wired up yet: the schema here uses SQLite's `INTEGER PRIMARY KEY
 //! AUTOINCREMENT`, so it needs dialect-aware DDL first.
 
-use luxid_orm::model::{Lucid, delete_by_id, insert, update};
+use luxid_orm::model::{Record, delete_by_id, insert, update};
 use luxid_orm::{Db, sea_orm};
 use sea_orm::{ActiveValue::Set, ConnectionTrait, IntoActiveModel};
 

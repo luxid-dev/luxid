@@ -1,7 +1,7 @@
 //! Authentication: password hashing, tokens, and the request's identity.
 //!
 //! `Auth` carries *who the request is*, not the user record. Loading a model
-//! from that identity belongs to the Lucid layer, so `ctx.auth.user()` arrives
+//! from that identity belongs to the data layer, so `ctx.auth.user()` arrives
 //! with the ORM; everything a token-based API needs is here today.
 
 use std::str::FromStr;

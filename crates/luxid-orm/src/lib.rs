@@ -1,4 +1,4 @@
-//! The Lucid data layer: Eloquent-flavoured ergonomics over SeaORM.
+//! The data layer: expressive model ergonomics over SeaORM.
 
 pub mod db;
 pub mod factory;
@@ -14,7 +14,7 @@ pub use factory::{Factory, FactoryBuilder};
 pub use hooks::Hooks;
 pub use migration::MigrationState;
 pub use model::{
-    ColumnRef, Lucid, Paginated, Query, Relatable, delete_by_id, insert, insert_without_hooks,
+    ColumnRef, Paginated, Query, Record, Relatable, delete_by_id, insert, insert_without_hooks,
     update,
 };
 pub use relations::{Relations, set_strict_relations, strict_relations};
@@ -33,7 +33,7 @@ pub use sea_orm;
 pub mod __private {
     pub use crate::hooks::Hooks;
     pub use crate::loading::{load_belongs_to, load_has_many, load_has_one};
-    pub use crate::model::{ColumnRef, Lucid, Relatable};
+    pub use crate::model::{ColumnRef, Record, Relatable};
     pub use crate::relations::Relations;
     pub use luxid_core::middleware::BoxFuture;
 }

@@ -5,7 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "The Lucid data layer for the Luxid web framework"
+description = "The data layer for the Luxid web framework"
 
 [dependencies]
 luxid-core.workspace = true

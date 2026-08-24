@@ -319,7 +319,7 @@ hardware is a 2014 i7-4980HQ. Method and caveats are in the design document.
 ## What is built
 
 Routing and groups · `HttpContext` · errors and RFC 7807 · middleware · service
-container · Lucid models with relations, scopes, hooks and typed columns ·
+container · models with relations, scopes, hooks and typed columns ·
 migrations · validation with async rules · JWT authentication and argon2
 hashing · OpenAPI 3.1 · in-app CLI (`serve`, `migrate*`, `routes`, `openapi`) ·
 `luxid new` and `make:model` scaffolding · cookie-backed sessions · factories ·

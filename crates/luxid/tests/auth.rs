@@ -9,7 +9,7 @@ use serde_json::{Value, json};
 
 const SECRET: &str = "test-secret-value";
 
-/// Stands in for a users table until the Lucid layer lands.
+/// Stands in for a users table until the data layer lands.
 fn find_user(email: &str) -> Option<(i64, &'static str, &'static str)> {
     match email {
         "ada@example.com" => Some((1, "admin", "$ada")),

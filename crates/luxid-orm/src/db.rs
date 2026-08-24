@@ -1,6 +1,7 @@
 //! The database handle and the request-scoped connection.
 //!
-//! Lucid's ergonomics — `User::find(id)`, `User::query().where_eq(..)` — depend
+//! The data layer's ergonomics — `User::find(id)`, `User::query().where_eq(..)`
+//! — depend
 //! on an *ambient* connection: those call sites have nowhere to pass a `&db`.
 //!
 //! Luxid makes it ambient with a tokio task-local rather than a global. That

@@ -280,14 +280,14 @@ fn expand(args: Args, block: ItemImpl) -> syn::Result<TokenStream2> {
                 #[doc = #docs]
                 pub fn #name(&self) -> #krate::Result<&[#target]> {
                     #krate::__private::Relatable::relations(self)
-                        .many::<#target>(<Self as #krate::__private::Lucid>::MODEL, #relation)
+                        .many::<#target>(<Self as #krate::__private::Record>::MODEL, #relation)
                 }
             },
             Kind::HasOne | Kind::BelongsTo => quote! {
                 #[doc = #docs]
                 pub fn #name(&self) -> #krate::Result<::std::option::Option<&#target>> {
                     #krate::__private::Relatable::relations(self)
-                        .one::<#target>(<Self as #krate::__private::Lucid>::MODEL, #relation)
+                        .one::<#target>(<Self as #krate::__private::Record>::MODEL, #relation)
                 }
             },
         });
@@ -341,7 +341,7 @@ fn expand(args: Args, block: ItemImpl) -> syn::Result<TokenStream2> {
                         unknown => ::std::result::Result::Err(#krate::Error::internal(
                             ::std::format!(
                                 "`{}` has no relation `{}`. Declared relations: [{}].",
-                                <Self as #krate::__private::Lucid>::MODEL,
+                                <Self as #krate::__private::Record>::MODEL,
                                 unknown,
                                 #declared,
                             ),
@@ -419,7 +419,7 @@ fn expand_scopes(
         starters.push(quote! {
             #[doc = #docs]
             pub fn #name(#(#params3),*) -> #query_ty {
-                <#self_ty>::#inner(<#self_ty as #krate::__private::Lucid>::query(), #(#forwarded2),*)
+                <#self_ty>::#inner(<#self_ty as #krate::__private::Record>::query(), #(#forwarded2),*)
             }
         });
     }

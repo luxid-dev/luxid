@@ -59,7 +59,7 @@ impl AuthController {
             .and_then(Value::as_str)
             .unwrap_or_default();
 
-        // Stands in for a users table until the Lucid layer lands. A wrong
+        // Stands in for a users table until the data layer lands. A wrong
         // email and a wrong password deliberately look identical to a caller.
         if email != "ada@example.com" || password != "secret" {
             return Err(Error::Unauthorized);

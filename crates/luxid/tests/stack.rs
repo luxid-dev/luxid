@@ -1,4 +1,4 @@
-//! The whole stack together: HTTP → controller → Lucid → SQLite → JSON.
+//! The whole stack together: HTTP → controller → data layer → SQLite → JSON.
 
 use luxid::__private::salvo::test::{ResponseExt, TestClient};
 use luxid::prelude::*;
