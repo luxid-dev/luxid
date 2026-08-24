@@ -566,7 +566,7 @@ Add the test harness:
 
 ```toml
 [dev-dependencies]
-luxid-testing = "0.1"
+luxid-testing = "0.2"
 ```
 
 ```sh

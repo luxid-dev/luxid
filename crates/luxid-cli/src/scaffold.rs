@@ -898,7 +898,7 @@ mod tests {
 
     #[test]
     fn a_new_app_carries_every_marker_make_model_needs() {
-        let plan = new_app("my-app", &Dependency::Version("0.1".into()));
+        let plan = new_app("my-app", &Dependency::Version("0.2".into()));
 
         let find = |path: &str| {
             plan.files
@@ -931,7 +931,7 @@ mod tests {
 
     #[test]
     fn a_hyphenated_app_name_becomes_a_valid_crate_name() {
-        let plan = new_app("my-app", &Dependency::Version("0.1".into()));
+        let plan = new_app("my-app", &Dependency::Version("0.2".into()));
         let manifest = &plan.files[0].contents;
 
         assert!(manifest.contains(r#"name = "my_app""#), "{manifest}");

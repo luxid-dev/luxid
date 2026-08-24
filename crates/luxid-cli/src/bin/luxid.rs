@@ -12,7 +12,7 @@ use luxid_cli::naming::Names;
 use luxid_cli::scaffold::{self, Dependency, ModelFlags};
 
 /// Version the generated app depends on, when not pointed at a local checkout.
-const LUXID_VERSION: &str = "0.1";
+const LUXID_VERSION: &str = "0.2";
 
 #[derive(Parser)]
 #[command(name = "luxid", version, about = "Scaffolding for Luxid applications")]

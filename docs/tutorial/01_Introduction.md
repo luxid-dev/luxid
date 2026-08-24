@@ -129,7 +129,7 @@ gets its own chapter.
 
 Being honest about this saves you time later.
 
-- **It is not stable.** This is 0.1.x. The API will change.
+- **It is not stable.** This is 0.2.x. The API will change.
 - **It is API-first.** Luxid renders JSON. There is no template engine and no
   asset pipeline yet.
 - **It does not do background jobs, email, or caching yet.** Those are planned.
