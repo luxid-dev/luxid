@@ -5,7 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "A Laravel/AdonisJS-inspired convention-over-configuration web framework for Rust"
+description = "A convention-over-configuration web framework for Rust, built on salvo"
 
 [features]
 default = ["orm", "cli"]
