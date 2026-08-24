@@ -633,9 +633,11 @@ use crate::entities::{plural};
 
 /// The typical {model}. Tests override only what they care about:
 ///
-///     {factory}::new().create_one().await?;
-///     {factory}::new().count(3).create().await?;
-///     {factory}::new().state(|row| row.name = Set("Ada".into())).create_one().await?;
+/// ```ignore
+/// {factory}::new().create_one().await?;
+/// {factory}::new().count(3).create().await?;
+/// {factory}::new().state(|row| row.name = Set("Ada".into())).create_one().await?;
+/// ```
 pub struct {factory};
 
 impl Factory for {factory} {{
