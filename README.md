@@ -327,7 +327,6 @@ hashing · OpenAPI 3.1 · in-app CLI (`serve`, `migrate*`, `routes`, `openapi`) 
 
 ## What is not built
 
-- **`ctx.config`** — no configuration type yet.
 - **Nested eager paths** — `.with("posts.comments")` is single-level only.
 - **`luxid check`** — planned, not written.
 - **Inertia.js** and **background jobs** — planned for 0.2.
