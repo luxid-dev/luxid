@@ -1,8 +1,10 @@
 # Luxid — Design
 
 **Status:** Living document — updated as the implementation proves or
-disproves what it says. Started 2026-08-22.
-**Substrate:** salvo · SeaORM 2.0 · Rust edition 2024 (toolchain 1.97.1)
+disproves what it says. Started 2026-08-22; last checked against the code at
+0.2.0, where §17 records what is built and what this document still only
+specifies.
+**Substrate:** salvo · SeaORM 2.0 · Rust edition 2024 (MSRV 1.94, developed on 1.97.1)
 
 ---
 
@@ -175,33 +177,48 @@ can therefore never be a breaking change.
 ```rust
 #[non_exhaustive]
 pub struct HttpContext {
-    pub request:  Request,      // owned
-    pub response: Response,     // owned, consumed on terminal methods
-    pub params:   Params,
-    pub auth:     Auth,
-    pub db:       Db,           // Arc handle
-    pub services: Container,    // Arc handle
-    pub config:   Config,       // Arc handle
-    pub events:   Events,       // Arc handle
-    pub logger:   Logger,       // Arc handle
+    pub request:    Request,      // owned
+    pub response:   Response,     // owned, consumed on terminal methods
+    pub params:     Params,
+    pub extensions: Extensions,   // typed, request-scoped bag
+    pub services:   Container,
+    pub auth:       Auth,         // anonymous unless a guard set it
+    pub config:     Config,
+    pub session:    Session,      // detached unless `Auth::session()` is active
 }
 ```
 
-`auth` is present on every route. `auth.user()` returns `Result` (401 if absent);
-`auth.try_user()` returns `Option`.
+There is deliberately **no `db` field**. The connection is ambient for the
+duration of a request — `WithDatabase` puts it in scope and queries pick it up —
+which is what lets model code read `Post::find(id).await?` rather than
+`Post::find(&db, id).await?`. Where the handle itself is wanted, for a
+transaction, it resolves like any other service: `ctx.services.get::<Db>()?`.
 
-Convenience accessors for core services: `ctx.cache()`, `ctx.mail()`, `ctx.queue()`.
+`auth` is present on every route and carries an *identity*, not a user record.
+`auth.identity()` returns `Result<&Identity>` (401 if anonymous),
+`auth.try_identity()` returns `Option<&Identity>`, `auth.id::<T>()` parses the
+subject, and `auth.check()` is the bare question. Loading the row is one line in
+the action: `User::find_or_fail(ctx.auth.id::<i64>()?).await?`.
 
-**Request:** `input::<T>` (query + body merged), `query`, `body`, `header`, `cookie`,
-`file`, `files`, `ip`, `method`, `url`, `all`, `bearer_token`, `validate::<T>`, `raw()`.
+**Request:** `input::<T>` (query first, then body), `query`, `query_all`,
+`body_json::<T>`, `body_bytes`, `header`, `headers`, `cookie`, `bearer_token`,
+`method`, `uri`, `path`, `validate::<T>`.
 
 **Response:** builder methods return `Response`; terminal methods return `Result<Response>`.
 
 ```rust
 response.ok(body)                                   response.no_content()
-response.created(body)                              response.redirect(url)
-response.status(201).header("x-trace", id).json(v)  response.stream(s)
+response.created(body)                              response.text(s)
+response.accepted(body)                             response.bytes(data, mime)
+response.status(418).header("x-trace", id).json(v)  response.redirect(url)   // 303
 ```
+
+> **Not built.** The `events` and `logger` fields and the `ctx.cache()` /
+> `ctx.mail()` / `ctx.queue()` accessors this section once specified do not
+> exist; the services behind them sit on the §14 roadmap, and
+> `#[non_exhaustive]` is what keeps adding them non-breaking. Request helpers
+> for uploads (`file`, `files`) and the peer address (`ip`) are likewise
+> unbuilt.
 
 ---
 
@@ -218,9 +235,9 @@ pub enum Error {
     Forbidden,                      // 403
     Conflict(String),               // 409
     TooManyRequests,                // 429
-    Database(sea_orm::DbErr),       // 500 — logged in full, redacted in the response
-    Internal(anyhow::Error),        // 500
+    BadRequest(String),             // 400
     Http { status, code, message, details },
+    Internal(anyhow::Error),        // 500 — logged in full, redacted in the response
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -229,26 +246,36 @@ pub type Result<T> = std::result::Result<T, Error>;
 This is what keeps actions short: `User::find_or_fail(id).await?` yields a clean 404 with
 no handling in the body.
 
-Rendering goes through an **exception handler generated into `src/app.rs`** and owned by
-the app, equivalent to Laravel's `Handler.php`. Default output is RFC 7807 `problem+json`:
+There is no separate database variant: a `DbErr` becomes `Internal` carrying the
+underlying message, so it is logged in full and redacted in the response like any
+other 500.
+
+Rendering happens in the salvo adapter, which is the one seam between Luxid and
+the substrate. Output is RFC 7807 `problem+json`:
 
 ```json
 { "type": "https://luxid.rs/errors/validation",
-  "title": "The given data was invalid",
+  "title": "the given data was invalid",
   "status": 422,
   "errors": { "email": ["must be a valid email address"] } }
 ```
 
 RFC 7807 is chosen because it yields free OpenAPI error schemas and free client codegen.
 
-Lifecycle: `middleware → HttpContext built → action → Result<Response> → exception handler (on Err) → salvo response`.
+Lifecycle: `HttpContext built → middleware → action → Result<Response> → problem
+document (on Err) → salvo response`.
+
+> **Not built.** An app-owned exception handler generated into `src/app.rs`,
+> equivalent to Laravel's `Handler.php`, was specified here and is not
+> implemented. Rendering is currently not overridable from the application.
 
 ---
 
 ## 6. Validation
 
-`derive(Validate)` wraps the `validator` crate for synchronous rules and adds
-**asynchronous, DB-backed rules** — the Laravel feature most conspicuously missing from Rust.
+`derive(Validate)` expands synchronous rules inline — no `validator` crate
+dependency, the rules are Luxid's own — and adds **asynchronous, DB-backed
+rules**, the feature most conspicuously missing from Rust validation crates.
 
 ```rust
 #[derive(Validate, Deserialize)]
@@ -260,9 +287,10 @@ pub struct StoreUser {
 }
 ```
 
-`request.validate::<StoreUser>().await?` runs sync rules first, then **all** async rules in
-a single batch against `ctx.db`, and aggregates into one 422. Never a per-field round trip,
-never a partial report.
+`request.validate::<StoreUser>().await?` runs sync rules first, then the async
+rules in a single pass against the ambient connection, **skipping any field that
+already failed**, and aggregates into one 422. Never a per-field round trip,
+never a partial report, and never two messages for one mistake.
 
 `unique` and `exists` correspond to Laravel's `unique:users,email` and `exists:teams,id`.
 
@@ -275,9 +303,10 @@ Same `HttpContext` type as controllers — one mental model framework-wide.
 ```rust
 #[luxid::middleware]
 impl AuthMiddleware {
-    async fn handle(mut ctx: HttpContext, next: Next) -> Result<Response> {
+    async fn handle(&self, mut ctx: HttpContext, next: Next) -> Result<Response> {
+        let jwt = ctx.services.get::<Jwt>()?;
         let token = ctx.request.bearer_token().ok_or(Error::Unauthorized)?;
-        ctx.auth.set(Jwt::verify(&token, ctx.config.jwt())?);
+        ctx.auth.set(jwt.verify(token)?);
 
         let res = next.run(ctx).await?;
         Ok(res.header("x-authenticated", "1"))
@@ -288,14 +317,22 @@ impl AuthMiddleware {
 Code above `next.run()` runs before; below runs after; early return short-circuits. No
 separate before/after API.
 
+`handle` takes `&self` so configured middleware can hold state — which is how
+`Auth::jwt()` and `RequireHeader::new("x-signature")` are ordinary values rather
+than special cases.
+
 Attachment is **typed, not string-keyed**, so typos are compile errors rather than runtime
-surprises:
+surprises. `middleware` returns the route, so several chain:
 
 ```rust
-r.resource("/admin", AdminController).middleware((Auth::jwt(), Role::admin()));
+r.resource("/admin", AdminController)
+    .middleware(Auth::jwt())
+    .middleware(Role::admin());
 ```
 
-Order is global → group → route. `luxid routes` prints the resolved stack per route.
+Order is global → group → route. `cargo luxid routes` prints how many middleware
+wrap each route, so a route missing its guard shows a lower count than its
+neighbours.
 
 ---
 
@@ -305,15 +342,20 @@ ASP.NET Core's lifetime model — the proven static-language answer.
 
 ```rust
 // src/app.rs
-pub fn providers() -> Providers {
+pub fn providers(db: Db) -> Providers {
     Providers::new()
-        .singleton(|c| UserService::new(c.db()))
+        .singleton(move |_| db.clone())
+        .singleton(|c| UserService::new(c.get::<Db>().expect("Db is registered")))
         .scoped(|_| RequestId::new())
-        .bind::<dyn Mailer>(|c| Arc::new(Smtp::new(c.config().mail())))
+        .transient(|_| Formatter::new())
+        .bind::<dyn Mailer, _>(|_| Arc::new(Smtp::new()))
 }
 ```
 
-Resolution: `ctx.services.get::<UserService>()?`.
+Resolution: `ctx.services.get::<UserService>()?` for a concrete type,
+`ctx.services.get_dyn::<dyn Mailer>()?` for a bound trait. `try_singleton` is
+the variant whose factory may fail, so a pool that cannot connect fails at boot
+rather than on first use.
 
 Runtime resolution is the trade already accepted with pure-context controllers. Blast radius is
 narrowed two ways:
@@ -328,8 +370,8 @@ narrowed two ways:
 
 Laravel's `Cache::get()` works because PHP resolves through a global container. The Rust
 equivalent requires global mutable state, which damages testability, parallel test
-execution, and multi-app processes. Context accessors (`ctx.cache()`) read nearly as short
-with none of the globals.
+execution, and multi-app processes. Resolving through the context —
+`ctx.services.get::<T>()?` — reads nearly as short with none of the globals.
 
 This is a visible, intentional divergence from Laravel and should be documented as one.
 
@@ -420,11 +462,14 @@ User::find_or_fail(id).await?      // User, else Error::NotFound → 404
 User::query()
     .active()
     .where_eq(User::team_id, team_id)
-    .with("posts.comments")
+    .with("posts")
     .order_by_desc(User::created_at)
     .paginate(page, 20).await?     // Paginated<User>
 
-User::create(input).await?;  user.fill(patch).save().await?;  user.delete().await?;
+// Writes take a SeaORM ActiveModel and run the model's hooks.
+luxid::insert(users::ActiveModel { name: Set(name), ..Default::default() }).await?;
+luxid::update(active).await?;
+luxid::delete_by_id::<users::Entity>(id).await?;   // bool: was anything removed
 ```
 
 ### Typed columns
@@ -434,12 +479,22 @@ fails to compile, where SeaORM's `users::Column::TeamId.eq("abc")` compiles and 
 
 ### Eager loading
 
-Runtime-typed, by string path: `.with("posts.comments")`, read back via
-`user.related::<Post>()?`. Consistent with the pure-context trade — runtime typing where static
-typing would cost more ergonomics than it is worth — and it permits arbitrary-depth graphs,
-which a fully static design cannot express in Rust without generic soup.
+Runtime-typed, by name: `.with("posts")`, read back through the method the
+relation generates — `user.posts()?` yields `&[Post]`, `post.author()?` yields
+`Option<&User>`. Naming the method after the relation is what keeps two
+relations onto the same model unambiguous. Loading is batched: one query per
+relation whatever the page size, with duplicate keys collapsed first.
 
-Loaded relations serialize into the JSON automatically, matching Eloquent.
+Consistent with the pure-context trade — runtime typing where static typing
+would cost more ergonomics than it is worth. A name that matches no declared
+relation is an error listing the ones that exist.
+
+Loaded relations serialize inline with the model's own columns, and a model with
+nothing loaded renders no relation keys at all.
+
+> **Single-level only.** `.with("posts.comments")` is not implemented and
+> reports the path as an undeclared relation. Arbitrary-depth graphs were
+> specified here; load one level and query the second.
 
 ### Strict relations
 
@@ -449,7 +504,20 @@ production surprise into a failing test.
 
 ### Transactions
 
-Explicit: `ctx.db.transaction(|tx| async move { ... }).await?`.
+Explicit, on the handle resolved from the container:
+
+```rust
+let db = ctx.services.get::<Db>()?;
+
+db.transaction(async || {
+    let user = luxid::insert(new_user).await?;
+    luxid::insert(new_profile(user.id)).await?;
+    Ok(())
+}).await?;
+```
+
+Commits on `Ok`, rolls back on `Err`. Every query inside joins the transaction
+through the same ambient handle, so there is no `tx` to thread through.
 
 ---
 
@@ -487,14 +555,21 @@ Two guards behind one interface — API-first, SSR-ready.
 r.resource("/users", UsersController).middleware(Auth::jwt());
 r.resource("/admin", AdminController).middleware(Auth::session());
 
-ctx.auth.user().await?
-ctx.auth.try_user().await?
+ctx.auth.id::<i64>()?                       // subject, parsed; 401 if anonymous
+ctx.auth.try_identity()                     // Option<&Identity>, never fails
 ctx.authorize(PostPolicy::update, &post)?   // → Error::Forbidden → 403
 ctx.can(PostPolicy::update, &post)          // bool, no consequence
 ```
 
-`Hash` wraps argon2; tokens use `jsonwebtoken`. `Guard` is a public trait, so API-key and
-OAuth guards need no Luxid release.
+`Hash` wraps argon2id; tokens use `jsonwebtoken`, with a one-hour default TTL.
+Session cookies default to fourteen days, carry an opaque 256-bit id and nothing
+else, and rotate that id on `login` so a fixed session id is worthless after
+authentication.
+
+A guard is ordinary middleware rather than an implementation of a `Guard`
+trait — `Auth::jwt()` returns a configured `JwtGuard` that implements
+`Middleware` — so an API-key or OAuth guard needs no Luxid release. Anything
+that sets `ctx.auth` before calling `next` is a guard.
 
 ---
 
@@ -527,8 +602,8 @@ can see them. So:
 * **`luxid`** — standalone, installed once, filesystem only: `new`,
   `make:model`.
 * **The app's own binary** — `cargo luxid serve | migrate | migrate:rollback |
-  migrate:fresh | migrate:status | routes | openapi`, wired up by one line in
-  `main.rs`:
+  migrate:fresh | migrate:status | db:sync | routes | openapi`, wired up by one
+  line in `main.rs`:
 
   ```rust
   luxid::cli::run::<migration::Migrator>(app::build().await?).await
@@ -557,22 +632,33 @@ generated as empty stubs, as in Laravel.
 ### Marked regions close Laravel's stub gap
 
 Because factories and form requests are generated before the schema exists, they start
-empty. `luxid db:sync` (run automatically after `luxid migrate`) refreshes the mechanical
-portion inside marked regions while preserving hand-written rules:
+empty. `cargo luxid db:sync` reads the live schema and refreshes the mechanical
+portion inside marked regions while preserving everything written outside them:
 
 ```rust
-pub struct StoreUser {
-    // <luxid:fields>  regenerated by `luxid db:sync`
-    #[validate(length(max = 255))]           pub name: String,
-    #[validate(email, unique(User::email))]  pub email: String,
+// src/entities/users.rs
+pub struct Model {
+    // <luxid:fields>  refreshed by `cargo luxid db:sync`
+    #[sea_orm(primary_key)]     pub id: i64,
+    pub name: String,
+    #[serde(skip_serializing)]  pub password: String,   // attribute carried over
     // </luxid:fields>
 
-    #[validate(length(min = 8))]             pub password: String,   // preserved
+    #[sea_orm(ignore)] #[serde(flatten)] pub relations: Relations,   // preserved
 }
 ```
 
-Working loop: `make:model User -a` → fill in the migration → `luxid migrate` → entities,
-factory fields, and form-request fields refresh; your overrides survive.
+Attributes a field already carries are re-attached on regeneration, because
+`#[serde(skip_serializing)]` on a password hash silently becoming "sent to every
+client" is not an acceptable outcome of running a sync command.
+
+Working loop: `make:model User -a` → fill in the migration → `cargo luxid migrate`
+→ `cargo luxid db:sync` → entity and factory fields refresh; your overrides survive.
+
+> **Entities and factories only.** Form requests carry no `<luxid:fields>`
+> markers and `db:sync` does not touch them: what an endpoint accepts is a
+> decision, not a reflection of the table. `db:sync` is also a separate command
+> rather than something `migrate` runs for you.
 
 ### `luxid check`
 
@@ -595,8 +681,11 @@ rustflags = ["-C", "link-arg=-fuse-ld=mold", "-C", "debuginfo=1"]
 ```
 
 Architectural half: the app crate stays thin and weight lives in `luxid-*`, so editing a
-controller rebuilds only the app crate. `luxid serve` watches, rebuilds incrementally,
-restarts, and **prints the rebuild time** so the number stays visible.
+controller rebuilds only the app crate.
+
+> **Not built.** `serve` starts the server and nothing more. The watching,
+> incremental rebuild, restart and printed rebuild time specified here are not
+> implemented; `cargo watch -x run` covers the loop in the meantime.
 
 Project goal, benchmarked in CI: **edit-to-restart under 3 seconds on a warm cache.**
 
@@ -605,27 +694,41 @@ Project goal, benchmarked in CI: **edit-to-restart under 3 seconds on a warm cac
 ## 13. Testing
 
 ```rust
-#[luxid::test]
-async fn it_lists_only_my_users(app: TestApp) -> Result<()> {
-    let me = UserFactory::new().create().await?;
-    UserFactory::new().count(3).for_team(me.team_id).create().await?;
+#[luxid::test(db = crate::support::database)]
+async fn it_lists_only_my_users(db: Db) -> Result<()> {
+    let me = UserFactory::new().create_one().await?;
+    UserFactory::new().count(3)
+        .state(move |row| row.team_id = Set(me.team_id))
+        .create().await?;
     UserFactory::new().count(2).create().await?;
 
-    app.get("/api/v1/users").acting_as(&me).send().await?
+    app(db).get("/api/v1/users")
+       .acting_as(SECRET, me.id)
+       .send().await
        .assert_ok()
        .assert_json_count("data", 3);
     Ok(())
 }
 ```
 
-- `#[luxid::test]` wraps each test in a transaction **rolled back at the end** — parallel-safe,
-  no truncation, no fixtures. Implemented by handing the app a `Db` backed by a single
-  connection holding an open `DatabaseTransaction`.
+- `#[luxid::test(db = ..)]` wraps each test in a transaction **rolled back at the end** —
+  parallel-safe, no truncation, no fixtures. Implemented by handing the app a `Db` backed
+  by a single connection holding an open `DatabaseTransaction`. The argument names a
+  function returning a `Db`; without it the attribute is `#[tokio::test]` plus `Result`
+  unwrapping.
 - Factories are generated by `make:model -f` and refreshed by `db:sync`, so they cannot
-  drift from the schema.
-- `acting_as` skips the login round-trip.
-- Assertions: `assert_status`, `assert_ok`, `assert_json_path`, `assert_json_count`,
-  `assert_validation_errors(&["email"])`, `assert_no_n_plus_one`.
+  drift from the schema. `state` overrides a field; `create_one` ignores `count`.
+- `acting_as(secret, subject)` signs a real token, so the request goes *through* the
+  guard rather than around it.
+- Assertions: `assert_status`, `assert_ok`, `assert_created`, `assert_no_content`,
+  `assert_unauthorized`, `assert_forbidden`, `assert_not_found`, `assert_header`,
+  `assert_json_path`, `assert_json_count`, `assert_validation_message`,
+  `assert_validation_errors(&["email"])`. Every failure prints the response body.
+
+> **Not built.** `assert_no_n_plus_one` was specified here and does not exist.
+> Strict relations cover the same ground from the other direction: an endpoint
+> that forgets `.with()` fails its test rather than silently issuing a query per
+> row.
 
 ---
 
@@ -652,7 +755,7 @@ hashing) · CLI with `make:model` · testing (`TestApp`, factories, rollback) ·
 
 ### Performance
 
-Measured, not asserted. `cargo bench -p luxid --bench overhead` compares three
+Measured, not asserted. `cargo bench -p luxid --bench overhead` compares five
 variants serving byte-identical responses, driven in-process so the numbers
 isolate framework cost rather than kernel and TCP behaviour.
 
@@ -794,7 +897,11 @@ authentication and argon2 hashing · OpenAPI 3.1 · the in-app CLI · `luxid new
 and `make:model` · the test harness with per-test transaction rollback ·
 an overhead benchmark.
 
-275 tests, clippy clean, rustfmt clean. A generated application builds
+Configuration — `luxid.toml` layered under the environment, reachable as
+`ctx.config` — is built too, and cookie-backed sessions with id rotation on
+login, policies, factories and `db:sync`.
+
+280 tests, clippy clean, rustfmt clean. A generated application builds
 warning-free, migrates, serves, and answers. CI checks all of that, including
 that `luxid new` + `make:model -a` still compiles.
 
@@ -803,8 +910,17 @@ that `luxid new` + `make:model -a` still compiles.
 | Item | Section |
 |---|---|
 | `luxid check` | §12 |
+| `ctx.db` — the connection is ambient; resolve `Db` from the container | §4 |
+| `ctx.events`, `ctx.logger` | §4 |
+| `ctx.cache()`, `ctx.mail()`, `ctx.queue()` — the services behind them are 0.3/0.4 | §4, §14 |
+| `Request::file`, `files`, `ip`, `all`, `raw` | §4 |
+| `Response::stream` | §4 |
 | `ctx.auth.user()` — `Auth` carries identity, not the user record | §11 |
+| An app-owned exception handler in `src/app.rs`; rendering is not overridable | §5 |
 | Nested eager paths — `.with("posts.comments")` is single-level | §9 |
+| `db:sync` refreshing form requests — it rewrites entities and factories only | §12 |
+| `serve` watching and rebuilding, and printing the rebuild time | §12 |
+| `assert_no_n_plus_one` | §13 |
 
 ### Deviations from this document, and why
 
@@ -816,6 +932,11 @@ that `luxid new` + `make:model -a` still compiles.
 | `luxid` split into a scaffolding binary and an in-app CLI | Runtime commands need types from the application's crate |
 | `jsonwebtoken` provider hardcoded rather than a feature | Feature unification across four crates enables both providers silently |
 | Apps depend on `sea-orm`, `sea-orm-migration` and `schemars` directly | Their derives emit crate-qualified paths; a facade re-export cannot satisfy them |
+| Synchronous validation rules are Luxid's own, not the `validator` crate | Async rules had to share the same pass and error aggregation |
+| Model writes are free functions (`luxid::insert`), not `User::create` / `user.save()` | A write takes a SeaORM `ActiveModel`, which is not the model type |
+| Relations are read through generated per-name methods, not `related::<T>()` | Two relations onto the same model would be ambiguous by type |
+| Middleware attaches by chained `.middleware(..)` calls, not a tuple | `Middleware` is not implemented for tuples |
+| The data-layer trait is `Record`, not `Lucid` | `Lucid` is AdonisJS's ORM name; 0.2.0 renamed it |
 
 Each of these is implemented as described in its own section above; this table
 exists so the change is visible rather than buried.
