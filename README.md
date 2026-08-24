@@ -7,7 +7,7 @@ Laravel's controller ergonomics inside a type system that will not bend.
 Built on [salvo](https://salvo.rs), which is sealed inside the framework. Salvo
 types never appear in a Luxid signature.
 
-> **Status: 0.1.0, experimental.** The API will change before 1.0 and some
+> **Status: 0.1.3, experimental.** The API will change before 1.0 and some
 > pieces are missing (see [What is not built](#what-is-not-built)). It builds, it
 > is tested, and it runs — but it has not carried a production workload yet.
 
@@ -343,7 +343,7 @@ worth knowing if you add an entity to a crate that lacks them.
 ## Development
 
 ```sh
-cargo test                              # 275 tests
+cargo test                              # 280 tests
 cargo clippy --all-targets
 cargo bench -p luxid --bench overhead
 ```
