@@ -337,7 +337,10 @@ pub trait Relatable: Record {
     fn load_relation(name: String, parents: &mut Vec<Self>) -> BoxFuture<'_, Result<()>>;
 }
 
-/// Model operations, implemented by `#[derive(Model)]`.
+/// Read operations on a stored row, implemented by `#[derive(Model)]`.
+///
+/// One impl per entity model, which is what lets `User::find(id)` and
+/// `User::query()` exist without a handle being threaded through.
 pub trait Record: FromQueryResult + Send + Sync + Sized + 'static {
     type Entity: EntityTrait<Model = Self>;
 
