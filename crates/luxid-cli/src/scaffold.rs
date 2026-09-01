@@ -181,6 +181,12 @@ name = "{crate_name}"
 version = "0.1.0"
 edition = "2024"
 
+# Declares this package its own workspace root, so `luxid new` works inside an
+# existing workspace — a monorepo, or the Luxid checkout itself. Without it
+# Cargo refuses to build ("believes it's in a workspace when it's not"), and
+# the `[profile]` sections below are ignored rather than applied.
+[workspace]
+
 [dependencies]
 {}
 migration = {{ path = "migration" }}
@@ -1458,7 +1464,7 @@ mod tests {
 
     #[test]
     fn a_new_app_carries_every_marker_make_model_needs() {
-        let plan = new_app("my-app", &Dependency::Version("0.2".into()), Stack::Api);
+        let plan = new_app("my-app", &Dependency::Version("0.3".into()), Stack::Api);
 
         let find = |path: &str| {
             plan.files
@@ -1505,7 +1511,7 @@ mod tests {
 
     #[test]
     fn an_api_app_has_no_frontend() {
-        let plan = new_app("shop", &Dependency::Version("0.2".into()), Stack::Api);
+        let plan = new_app("shop", &Dependency::Version("0.3".into()), Stack::Api);
         assert_unique_paths(&plan);
 
         let paths: Vec<_> = plan
@@ -1543,7 +1549,7 @@ mod tests {
         ] {
             let plan = new_app(
                 "shop",
-                &Dependency::Version("0.2".into()),
+                &Dependency::Version("0.3".into()),
                 Stack::Inertia(client),
             );
             assert_unique_paths(&plan);
@@ -1568,7 +1574,7 @@ mod tests {
         for client in [Client::React, Client::Vue, Client::Svelte] {
             let plan = new_app(
                 "shop",
-                &Dependency::Version("0.2".into()),
+                &Dependency::Version("0.3".into()),
                 Stack::Inertia(client),
             );
 
@@ -1600,7 +1606,7 @@ mod tests {
         // still offer somewhere for that to land.
         let plan = new_app(
             "shop",
-            &Dependency::Version("0.2".into()),
+            &Dependency::Version("0.3".into()),
             Stack::Inertia(Client::React),
         );
 
@@ -1627,7 +1633,7 @@ mod tests {
         // redirect, or flashed errors are dropped.
         let plan = new_app(
             "shop",
-            &Dependency::Version("0.2".into()),
+            &Dependency::Version("0.3".into()),
             Stack::Inertia(Client::React),
         );
 
@@ -1649,8 +1655,21 @@ mod tests {
     }
 
     #[test]
+    fn a_generated_app_is_its_own_workspace_root() {
+        // Without this, `luxid new` inside any existing workspace — a monorepo,
+        // or the Luxid checkout that CI generates into — produces a package
+        // Cargo refuses to build, and silently ignores its [profile] sections.
+        for stack in [Stack::Api, Stack::Inertia(Client::React)] {
+            let plan = new_app("shop", &Dependency::Version("0.3".into()), stack);
+            let manifest = &plan.files[0].contents;
+
+            assert!(manifest.contains("[workspace]"), "{stack:?}: {manifest}");
+        }
+    }
+
+    #[test]
     fn a_hyphenated_app_name_becomes_a_valid_crate_name() {
-        let plan = new_app("my-app", &Dependency::Version("0.2".into()), Stack::Api);
+        let plan = new_app("my-app", &Dependency::Version("0.3".into()), Stack::Api);
         let manifest = &plan.files[0].contents;
 
         assert!(manifest.contains(r#"name = "my_app""#), "{manifest}");

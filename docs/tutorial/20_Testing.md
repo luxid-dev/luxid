@@ -30,7 +30,7 @@ Add the harness to your `Cargo.toml`:
 
 ```toml
 [dev-dependencies]
-luxid-testing = "0.2"
+luxid-testing = "0.3"
 ```
 
 ## Each test gets a clean database

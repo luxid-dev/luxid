@@ -583,9 +583,9 @@ checksum = "f079e83a288787bcd14a6aea84cee5c87a67c5a3e660c30f557a3d24761b3527"
 
 [[package]]
 name = "chacha20"
-version = "0.10.1"
+version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d524456ba66e72eb8b115ff89e01e497f8e6d11d78b70b1aa13c0fbd97540a81"
+checksum = "65c35e4b699c7e15ccbe7ee35c005e4fc0a278d22238a2857e6ce2dadeda1b06"
 dependencies = [
  "cfg-if",
  "cpufeatures 0.3.0",
@@ -1981,7 +1981,7 @@ checksum = "0ceec5bc11778974d1bcb055b18002eba7f4b3518b6a0081b3af5f21666da9ad"
 
 [[package]]
 name = "luxid"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "criterion",
  "luxid-cli",
@@ -2000,7 +2000,7 @@ dependencies = [
 
 [[package]]
 name = "luxid-cli"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "clap",
  "luxid-core",
@@ -2012,7 +2012,7 @@ dependencies = [
 
 [[package]]
 name = "luxid-core"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "argon2",
@@ -2028,7 +2028,7 @@ dependencies = [
 
 [[package]]
 name = "luxid-macros"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2037,7 +2037,7 @@ dependencies = [
 
 [[package]]
 name = "luxid-orm"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "luxid-core",
  "luxid-macros",
@@ -2050,7 +2050,7 @@ dependencies = [
 
 [[package]]
 name = "luxid-testing"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "luxid-core",
  "salvo",

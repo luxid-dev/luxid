@@ -13,7 +13,7 @@ use luxid_cli::prompt;
 use luxid_cli::scaffold::{self, Client, Dependency, ModelFlags, Stack};
 
 /// Version the generated app depends on, when not pointed at a local checkout.
-const LUXID_VERSION: &str = "0.2";
+const LUXID_VERSION: &str = "0.3";
 
 #[derive(Parser)]
 #[command(name = "luxid", version, about = "Scaffolding for Luxid applications")]

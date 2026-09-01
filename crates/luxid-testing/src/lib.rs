@@ -16,7 +16,10 @@ use serde_json::Value;
 /// Salvo needs an absolute URL; the host is irrelevant because nothing is bound.
 const BASE: &str = "http://test.invalid";
 
+/// Mirrors `luxid::Method`, and is `#[non_exhaustive]` for the same reason:
+/// a new verb should never break a test suite that matches on one.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Method {
     Get,
     Post,

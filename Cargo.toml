@@ -10,18 +10,23 @@ members = [
 ]
 
 [workspace.package]
-version = "0.2.0"
+version = "0.3.0"
 edition = "2024"
 rust-version = "1.94"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/luxid-dev/luxid"
+# Inherited fields are opt-in: each member repeats `readme.workspace = true`
+# and friends. Without the readme, every crates.io page renders blank.
+readme = "README.md"
+keywords = ["web", "framework", "salvo", "inertia", "orm"]
+categories = ["web-programming::http-server"]
 
 [workspace.dependencies]
-luxid-core = { path = "crates/luxid-core", version = "0.2.0" }
-luxid-macros = { path = "crates/luxid-macros", version = "0.2.0" }
-luxid-orm = { path = "crates/luxid-orm", version = "0.2.0" }
-luxid-testing = { path = "crates/luxid-testing", version = "0.2.0" }
-luxid-cli = { path = "crates/luxid-cli", version = "0.2.0" }
+luxid-core = { path = "crates/luxid-core", version = "0.3.0" }
+luxid-macros = { path = "crates/luxid-macros", version = "0.3.0" }
+luxid-orm = { path = "crates/luxid-orm", version = "0.3.0" }
+luxid-testing = { path = "crates/luxid-testing", version = "0.3.0" }
+luxid-cli = { path = "crates/luxid-cli", version = "0.3.0" }
 
 salvo = { version = "0.95", default-features = false, features = [
 	"server",

@@ -22,7 +22,12 @@ pub trait ResourceRoutes {
     fn register(router: &mut Router);
 }
 
+/// `#[non_exhaustive]` is load-bearing, for the same reason it is on
+/// `HttpContext`: it forces downstream crates to write a `_` arm, so adding a
+/// verb — HEAD, TRACE, whatever a future protocol needs — is permanently
+/// non-breaking. Adding `Options` for CORS preflight was the warning shot.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Method {
     Get,
     Post,

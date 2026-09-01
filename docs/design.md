@@ -2,7 +2,7 @@
 
 **Status:** Living document — updated as the implementation proves or
 disproves what it says. Started 2026-08-22; last checked against the code at
-0.2.0, where §17 records what is built and what this document still only
+0.3.0, where §17 records what is built and what this document still only
 specifies.
 **Substrate:** salvo · SeaORM 2.0 · Rust edition 2024 (MSRV 1.94, developed on 1.97.1)
 
@@ -916,7 +916,12 @@ Configuration — `luxid.toml` layered under the environment, reachable as
 `ctx.config` — is built too, and cookie-backed sessions with id rotation on
 login, policies, factories and `db:sync`.
 
-280 tests, clippy clean, rustfmt clean. A generated application builds
+Views: the Inertia.js protocol — shell or JSON from one action, partial
+reloads, shared props, asset versioning, and validation failures rendered as a
+redirect-back with the errors flashed rather than a 422 — plus session flash,
+static file serving, and `luxid new` scaffolding a React, Vue or Svelte client.
+
+313 tests, clippy clean, rustfmt clean. A generated application builds
 warning-free, migrates, serves, and answers. CI checks all of that, including
 that `luxid new` + `make:model -a` still compiles.
 
@@ -936,6 +941,8 @@ that `luxid new` + `make:model -a` still compiles.
 | `db:sync` refreshing form requests — it rewrites entities and factories only | §12 |
 | `serve` watching and rebuilding, and printing the rebuild time | §12 |
 | `assert_no_n_plus_one` | §13 |
+| Inertia error pages — a 404 or 403 on an Inertia route still renders `application/problem+json` rather than an error component | §14 |
+| Session writes are lost when an action returns `Err`: `SessionGuard` persists after `next.run(ctx).await?`, and `write_error` can carry neither headers nor a response | §5, §11 |
 
 ### Deviations from this document, and why
 

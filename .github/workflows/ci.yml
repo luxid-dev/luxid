@@ -35,9 +35,40 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
 
-      - name: Generate and build an application
+      - name: Generate and build an API application
         run: |
-          cargo run -p luxid-cli --bin luxid -- new demoapp --luxid-path "$PWD"
+          cargo run -p luxid-cli --bin luxid -- new demoapp --luxid-path "$PWD" --stack api
           cd demoapp
           cargo run -p luxid-cli --bin luxid --manifest-path ../Cargo.toml -- make:model Post -a
           cargo build
+
+  # The Inertia path has a second half CI would otherwise never compile.
+  inertia:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        client: [react, vue, svelte]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Generate, build and bundle a ${{ matrix.client }} application
+        run: |
+          cargo run -p luxid-cli --bin luxid -- new demoapp \
+            --luxid-path "$PWD" --stack inertia --client ${{ matrix.client }}
+          cd demoapp
+          cargo build
+          npm install
+          npm run build
+
+      - name: The manifest key must match what the server looks up
+        run: |
+          cd demoapp
+          test -f public/build/.vite/manifest.json
+          grep -q "$(grep -oE 'resources/js/app\.[a-z]+' src/routes.rs | head -1)" \
+            public/build/.vite/manifest.json
