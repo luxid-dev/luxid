@@ -16,6 +16,7 @@
 //! standalone, since they only touch the filesystem.
 
 pub mod naming;
+pub mod prompt;
 pub mod scaffold;
 
 use clap::{Parser, Subcommand};

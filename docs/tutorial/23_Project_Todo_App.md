@@ -633,4 +633,4 @@ flaw in this kind of API, and they only show up in tests that use two users.
 
 ---
 
-Previous: [22 — Project: an Auth API](22_Project_Auth_App.md) · [Back to the index](README.md)
+Previous: [22 — Project: an Auth API](22_Project_Auth_App.md) · Next: [24 — Views with Inertia](24_Inertia.md)

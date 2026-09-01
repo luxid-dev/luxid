@@ -203,6 +203,12 @@ impl Response {
         Ok(self)
     }
 
+    /// An HTML document. Used by the Inertia shell; also handy for a one-off
+    /// page that does not warrant a view layer.
+    pub fn html(self, body: impl Into<String>) -> Result<Self> {
+        self.bytes(body.into().into_bytes(), "text/html; charset=utf-8")
+    }
+
     pub fn bytes(
         mut self,
         data: impl Into<Bytes>,

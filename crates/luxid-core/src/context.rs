@@ -123,6 +123,8 @@ pub struct HttpContext {
     pub config: Config,
     /// The request's session. Detached unless `Auth::session()` is active.
     pub session: Session,
+    /// Inertia protocol state. Detached unless the `Inertia` middleware ran.
+    pub inertia: crate::inertia::InertiaRequest,
 }
 
 impl HttpContext {
@@ -167,6 +169,7 @@ impl HttpContext {
             auth: Auth::default(),
             config,
             session: Session::detached(),
+            inertia: crate::inertia::InertiaRequest::default(),
         }
     }
 }

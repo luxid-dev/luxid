@@ -346,6 +346,11 @@ impl Middleware for SessionGuard {
 
             let session = Session::attached(id, data);
 
+            // Last request's flash becomes readable now; this request starts a
+            // fresh bag. Done before the action runs so both middleware and
+            // actions see the same values.
+            session.age_flash();
+
             if let Some(subject) = session.subject() {
                 ctx.auth.set(Identity::new(subject));
             }

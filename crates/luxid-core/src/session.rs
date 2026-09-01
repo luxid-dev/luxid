@@ -25,6 +25,12 @@ use crate::middleware::BoxFuture;
 /// The reserved key holding the authenticated subject.
 const SUBJECT: &str = "__luxid_subject";
 
+/// Flash values written during this request, readable on the *next* one.
+const FLASH_NEXT: &str = "__luxid_flash_next";
+
+/// Flash values written during the previous request, readable now.
+const FLASH_NOW: &str = "__luxid_flash_now";
+
 /// Everything stored against one session id.
 pub type SessionData = BTreeMap<String, Value>;
 
@@ -119,6 +125,94 @@ impl Session {
         self.write(|state| {
             state.data.remove(key);
         })
+    }
+
+    /// Store a value readable on the *next* request only, then discarded.
+    ///
+    /// This is what makes the post-redirect-get pattern work: an action that
+    /// fails validation flashes the errors and redirects, and the GET that
+    /// follows reads them once. Nothing has to remember to clean up.
+    ///
+    /// Flash is deliberately separate from [`Session::put`]. A value that
+    /// should survive exactly one hop and a value that should persist are
+    /// different intentions, and conflating them is how stale error messages
+    /// end up rendered on unrelated pages.
+    pub fn flash<T: Serialize>(&self, key: impl Into<String>, value: T) -> Result<()> {
+        let key = key.into();
+        let value = serde_json::to_value(value)
+            .map_err(|err| Error::internal(format!("flash key `{key}`: {err}")))?;
+
+        self.write(|state| {
+            let bag = state
+                .data
+                .entry(FLASH_NEXT.to_owned())
+                .or_insert_with(|| Value::Object(Default::default()));
+
+            if let Some(map) = bag.as_object_mut() {
+                map.insert(key, value);
+            }
+        })
+    }
+
+    /// Read a value flashed by the previous request.
+    ///
+    /// Reading does not consume it: within one request the same flash can be
+    /// read by middleware and by an action. It is discarded when the *next*
+    /// request ages the bag.
+    pub fn flashed<T: DeserializeOwned>(&self, key: &str) -> Result<Option<T>> {
+        let raw = self.with(|state| {
+            state
+                .data
+                .get(FLASH_NOW)
+                .and_then(|bag| bag.as_object())
+                .and_then(|map| map.get(key))
+                .cloned()
+        });
+
+        match raw {
+            Some(value) => serde_json::from_value(value)
+                .map(Some)
+                .map_err(|err| Error::internal(format!("flash key `{key}`: {err}"))),
+            None => Ok(None),
+        }
+    }
+
+    /// Whether anything was flashed by the previous request.
+    pub fn has_flash(&self) -> bool {
+        self.with(|state| {
+            state
+                .data
+                .get(FLASH_NOW)
+                .and_then(|bag| bag.as_object())
+                .is_some_and(|map| !map.is_empty())
+        })
+    }
+
+    /// Promote last request's flash bag to be readable now, and start an empty
+    /// one for this request. Called by the session middleware at load time.
+    ///
+    /// This does not mark the session dirty on its own: a request that neither
+    /// reads nor writes anything should not cause a store write just because
+    /// an empty bag was rotated.
+    pub(crate) fn age_flash(&self) {
+        let mut state = self.state.lock().expect("session state is not poisoned");
+
+        let carried = state.data.remove(FLASH_NEXT);
+        let had_now = state.data.remove(FLASH_NOW).is_some();
+
+        match carried {
+            Some(bag) => {
+                state.data.insert(FLASH_NOW.to_owned(), bag);
+                // Something changed that must reach the store, or the flash
+                // would be delivered again on the request after this one.
+                state.dirty = true;
+            }
+            None => {
+                if had_now {
+                    state.dirty = true;
+                }
+            }
+        }
     }
 
     /// Empty the session, keeping the id.

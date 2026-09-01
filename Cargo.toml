@@ -28,6 +28,9 @@ salvo = { version = "0.95", default-features = false, features = [
 	"http1",
 	"http2",
 	"test",
+	# Serves a built frontend's assets, so an Inertia app needs no separate
+	# web server in development or in a single-binary deployment.
+	"serve-static",
 ] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 serde = { version = "1", features = ["derive"] }

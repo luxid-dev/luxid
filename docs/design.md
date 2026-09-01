@@ -42,7 +42,7 @@ differentiators, in the order a stranger would notice them:
 
 1. `HttpContext` controllers instead of extractor-based handlers — no extractor trait-bound errors.
 2. Async DB-backed validation rules (`unique`, `exists`) — no Rust framework ships these.
-3. First-class Inertia.js adapter (0.2) — the migration path for Laravel refugees.
+3. First-class Inertia.js adapter — the migration path for Laravel refugees.
 4. Postgres-backed queues, no Redis (0.2).
 5. Compile time treated as a tracked feature, not an accepted tax.
 
@@ -745,7 +745,7 @@ hashing) · CLI with `make:model` · testing (`TestApp`, factories, rollback) ·
 
 | Version | Feature |
 |---|---|
-| 0.2 | Inertia.js adapter |
+| ~~0.2~~ | ~~Inertia.js adapter~~ — built |
 | 0.2 | Background jobs, Postgres-backed |
 | 0.3 | Events & listeners |
 | 0.3 | Mail |
@@ -836,7 +836,7 @@ above is what it would buy.
 
 ### Two roadmap decisions
 
-**Stay on 0.x until Inertia and jobs land.** API decisions become permanent early in a
+**Stay on 0.x until jobs land.** API decisions become permanent early in a
 public framework; the honest way to keep the surface open is to not claim 1.0 until it has
 survived real use.
 
@@ -847,15 +847,30 @@ app at zero additional infrastructure.
 
 ### Inertia is a protocol, not a rewrite
 
-The official Inertia client adapters (React/Vue/Svelte) work against any backend
-implementing the protocol. Luxid needs only the server half: respond with JSON carrying
-`component`/`props`/`url`/`version` when `X-Inertia` is present, otherwise render an HTML
-shell with `data-page`; plus partial reloads via `X-Inertia-Partial-Data`, shared props,
-asset versioning, and 303 redirects on PUT/PATCH/DELETE.
+*Built. `luxid-core/src/inertia.rs`, chapter 24 of the tutorial.*
 
-The 0.1 response abstraction must therefore be able to resolve into either JSON or an HTML
-shell from the same action. `#[non_exhaustive]` on `HttpContext` reserves room for the
-`inertia` field.
+The official Inertia client adapters (React/Vue/Svelte) work against any backend
+implementing the protocol, so Luxid implements only the server half: JSON carrying
+`component`/`props`/`url`/`version` when `X-Inertia` is present, otherwise an HTML shell
+with `data-page`; plus partial reloads, shared props, asset versioning and a 409 on version
+mismatch. `Response::redirect` was already 303 and `HttpContext` already reserved the
+`inertia` field, so neither needed a breaking change.
+
+**Validation errors decided the design.** Inertia is post-redirect-get: a failed form
+redirects back with the errors flashed to the session, not a 422 document. The obvious home
+for that — Luxid's error renderer — cannot work, because `write_error` runs after the
+`HttpContext`, and therefore the `Session`, has been consumed. It is middleware instead,
+keeping a session handle across `next.run` exactly as `SessionGuard` does.
+
+The payoff is that `Error` is untouched. A route without the middleware still answers with
+`422 application/problem+json`, so one action, one validator and one `validate()` call serve
+both a JSON API and an Inertia frontend; the route group decides the rendering.
+
+Ordering is load-bearing and documented in the scaffold: `Auth::session()` must be outside
+`Inertia`, because the session guard writes back with `?` and would never see an `Err`.
+
+**Inertia is opt-in at `luxid new`, not the default.** Most Luxid apps are APIs, and a Node
+toolchain is a real cost to impose on someone who did not ask for one.
 
 ---
 

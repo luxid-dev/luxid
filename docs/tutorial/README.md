@@ -67,6 +67,12 @@ explains it first.
 | [22 Project: an Auth API](22_Project_Auth_App.md) | Register, log in, protected routes — from scratch |
 | [23 Project: a Todo API](23_Project_Todo_App.md) | Ownership, relations, filtering, a full test suite |
 
+## Part 8 — Views
+
+| | |
+|---|---|
+| [24 Views with Inertia](24_Inertia.md) | React, Vue or Svelte pages driven by your controllers |
+
 ---
 
 Two habits worth forming as you read:

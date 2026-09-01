@@ -323,13 +323,14 @@ container · models with relations, scopes, hooks and typed columns ·
 migrations · validation with async rules · JWT authentication and argon2
 hashing · OpenAPI 3.1 · in-app CLI (`serve`, `migrate*`, `routes`, `openapi`) ·
 `luxid new` and `make:model` scaffolding · cookie-backed sessions · factories ·
-`db:sync` · a test harness with per-test transaction rollback and `acting_as`.
+`db:sync` · a test harness with per-test transaction rollback and `acting_as` ·
+Inertia.js views with React, Vue or Svelte.
 
 ## What is not built
 
 - **Nested eager paths** — `.with("posts.comments")` is single-level only.
 - **`luxid check`** — planned, not written.
-- **Inertia.js** and **background jobs** — planned for 0.2.
+- **Background jobs** — planned for 0.2.
 
 ## A note on dependencies
 

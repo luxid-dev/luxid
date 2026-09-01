@@ -28,12 +28,12 @@
 
 pub use luxid_core::{
     Action, App, Auth, Body, BoxFuture, Config, Container, Cookie, Error, Extensions, Hash,
-    HttpContext, Identity, Jwt, Lifetime, MemoryStore, Method, Middleware, Next, Params, Providers,
-    Request, Response, Result, Route, Router, SameSite, Session, SessionData, SessionStore,
-    Validate, ValidationErrors, validate,
+    HttpContext, Identity, Inertia, InertiaRequest, Jwt, Lifetime, MemoryStore, Method, Middleware,
+    Next, Params, Providers, Request, Response, Result, Route, Router, SameSite, Session,
+    SessionData, SessionStore, Validate, ValidationErrors, validate,
 };
 pub use luxid_core::{
-    adapter, app, auth, container, context, error, http, middleware as mw, router, session,
+    adapter, app, auth, container, context, error, http, inertia, middleware as mw, router, session,
 };
 #[cfg(feature = "orm")]
 pub use luxid_macros::model;
@@ -152,9 +152,9 @@ pub mod __private {
 
 pub mod prelude {
     pub use crate::{
-        App, Auth, Config, Container, Cookie, Error, Hash, HttpContext, Identity, Jwt, MemoryStore,
-        Middleware, Next, Params, Providers, Request, Response, Result, Router, Session,
-        SessionStore, Validate, ValidationErrors, controller, middleware,
+        App, Auth, Config, Container, Cookie, Error, Hash, HttpContext, Identity, Inertia, Jwt,
+        MemoryStore, Middleware, Next, Params, Providers, Request, Response, Result, Router,
+        Session, SessionStore, Validate, ValidationErrors, controller, middleware,
     };
 
     #[cfg(feature = "orm")]

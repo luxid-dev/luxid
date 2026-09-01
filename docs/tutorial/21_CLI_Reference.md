@@ -10,18 +10,46 @@ your code.
 
 ### `luxid new <name>`
 
-Creates a project.
+Creates a project. Run in a terminal, it asks what to build.
 
 ```sh
 luxid new blog
-luxid new blog --luxid-path /path/to/luxid    # depend on a local checkout
 ```
+
+```
+What are you building?
+
+  1) API only          JSON endpoints. No frontend, no Node. (default)
+  2) SSR with Inertia  Server-driven pages rendered by React, Vue or Svelte.
+```
+
+Choosing Inertia then asks for a client framework — React, Vue or Svelte.
+
+| Flag | Effect |
+|---|---|
+| `--stack api\|inertia` | Skip the first question |
+| `--client react\|vue\|svelte` | Skip the second. Requires `--stack inertia` |
+| `-y`, `--yes` | Take the defaults: an API-only app |
+| `--luxid-path <DIR>` | Depend on a local Luxid checkout |
+
+```sh
+luxid new blog --stack inertia --client vue
+luxid new api --stack api
+```
+
+The questions are only asked when stdin **and** stdout are terminals. In a
+script, a pipeline, a Dockerfile or CI, the defaults apply instead — the command
+never blocks waiting for an answer that cannot come.
 
 `--luxid-path` is for working on the framework itself. Ordinary projects do not
 need it.
 
 The name becomes the crate name, normalised — `my-app` gives a crate called
 `my_app`.
+
+An Inertia project additionally gets `package.json`, `vite.config.js`,
+`resources/js/` and a pages controller. See
+[chapter 24](24_Inertia.md).
 
 ### `luxid make:model <Name>`
 
