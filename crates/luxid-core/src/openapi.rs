@@ -135,6 +135,7 @@ fn method_key(method: Method) -> &'static str {
         Method::Put => "put",
         Method::Patch => "patch",
         Method::Delete => "delete",
+        Method::Options => "options",
     }
 }
 

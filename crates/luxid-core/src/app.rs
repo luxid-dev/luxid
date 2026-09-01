@@ -125,7 +125,18 @@ impl App {
         let services = self.providers.build();
         let mut root = salvo::Router::new();
 
-        for route in self.router.flatten() {
+        let flattened = self.router.flatten();
+
+        // Static mounts first: salvo matches in registration order, and a
+        // wildcard asset route must not shadow the application's own routes.
+        for mount in flattened.statics {
+            root = root.push(
+                salvo::Router::with_path(format!("{}/{{**path}}", mount.path))
+                    .get(salvo::serve_static::StaticDir::new([mount.dir]).auto_list(false)),
+            );
+        }
+
+        for route in flattened.routes {
             let handler = RouteHandler::new(
                 route.middleware,
                 route.action,
@@ -140,6 +151,7 @@ impl App {
                 Method::Put => leaf.put(handler),
                 Method::Patch => leaf.patch(handler),
                 Method::Delete => leaf.delete(handler),
+                Method::Options => leaf.options(handler),
             };
 
             root = root.push(leaf);

@@ -23,6 +23,8 @@ pub enum Method {
     Put,
     Patch,
     Delete,
+    /// For asserting on a CORS preflight.
+    Options,
 }
 
 /// An application under test.
@@ -56,6 +58,11 @@ impl TestApp {
 
     pub fn delete(&self, path: &str) -> TestRequest {
         self.request(Method::Delete, path)
+    }
+
+    /// Send an `OPTIONS` request, for asserting on a CORS preflight.
+    pub fn options(&self, path: &str) -> TestRequest {
+        self.request(Method::Options, path)
     }
 
     fn request(&self, method: Method, path: &str) -> TestRequest {
@@ -150,6 +157,7 @@ impl TestRequest {
             Method::Put => salvo::test::TestClient::put(url),
             Method::Patch => salvo::test::TestClient::patch(url),
             Method::Delete => salvo::test::TestClient::delete(url),
+            Method::Options => salvo::test::TestClient::options(url),
         };
 
         for (name, value) in self.headers {
